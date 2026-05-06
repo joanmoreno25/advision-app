@@ -1,37 +1,61 @@
 import React, { useState } from 'react';
 import './App.css';
 
-// Importamos los agentes y los comandos necesarios
+// --- IMPORTACIONES DE AWS ---
 import { s3Client, rekognitionClient, BUCKET_NAME } from './aws-config';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { DetectLabelsCommand } from "@aws-sdk/client-rekognition";
 
+// --- IMPORTACIONES DE FIREBASE ---
+import { db } from './firebase-config'; // Nuestra conexión
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // Herramientas de la base de datos
+
 function App() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [labels, setLabels] = useState([]); // Nueva memoria para guardar las etiquetas de la IA
+  const [labels, setLabels] = useState([]);
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
-    setLabels([]); // Limpiamos etiquetas anteriores al elegir nueva foto
+    setLabels([]);
   };
 
-  // --- FUNCIÓN PARA LLAMAR A LA IA ---
+  // --- NUEVA FUNCIÓN: GUARDAR EN LA BASE DE DATOS ---
+  const saveToFirestore = async (imageName, detectedLabels) => {
+    try {
+      // 1. Creamos la "ficha" con los datos que queremos guardar
+      const analysisData = {
+        nombreImagen: imageName,
+        etiquetas: detectedLabels.map(l => ({ 
+          nombre: l.Name, 
+          confianza: l.Confidence 
+        })),
+        fechaCreacion: serverTimestamp() // Usa la hora oficial de Google
+      };
+
+      // 2. Le decimos a Firebase: "Añade este documento a la carpeta 'analisis'"
+      const docRef = await addDoc(collection(db, "analisis"), analysisData);
+      
+      console.log("Análisis guardado en Firebase con ID: ", docRef.id);
+    } catch (error) {
+      console.error("Error al guardar en Firebase:", error);
+    }
+  };
+
   const analyzeImage = async (imageName) => {
     try {
       const command = new DetectLabelsCommand({
-        Image: {
-          S3Object: {
-            Bucket: BUCKET_NAME,
-            Name: `originals/${imageName}`, // Le damos la dirección de la foto
-          },
-        },
-        MaxLabels: 10, // Le pedimos solo las 10 etiquetas más importantes
-        MinConfidence: 75, // Solo queremos cosas de las que esté muy segura (>75%)
+        Image: { S3Object: { Bucket: BUCKET_NAME, Name: `originals/${imageName}` } },
+        MaxLabels: 10,
+        MinConfidence: 75,
       });
 
       const response = await rekognitionClient.send(command);
-      setLabels(response.Labels); // Guardamos el JSON de respuesta en el estado
+      setLabels(response.Labels);
+
+      // ¡PASO CLAVE!: Guardamos el resultado en la base de datos
+      await saveToFirestore(imageName, response.Labels);
+
     } catch (error) {
       console.error("Error en Rekognition:", error);
       alert("La IA no pudo analizar la imagen.");
@@ -41,24 +65,18 @@ function App() {
   const uploadToS3 = async () => {
     if (!file) return alert("Selecciona una imagen.");
     setUploading(true);
-
     try {
       const arrayBuffer = await file.arrayBuffer();
       const fileData = new Uint8Array(arrayBuffer);
-
       const command = new PutObjectCommand({
         Bucket: BUCKET_NAME,
         Key: `originals/${file.name}`,
         Body: fileData,
         ContentType: file.type
       });
-
       await s3Client.send(command);
-      
-      // Si la subida va bien, llamamos a la IA inmediatamente
       await analyzeImage(file.name);
-      
-      alert("¡Proceso completado!");
+      alert("¡Imagen analizada y guardada con éxito!");
     } catch (error) {
       console.error("Fallo:", error);
       alert("Error en el proceso.");
@@ -71,34 +89,26 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Catalogador IA</h1>
-        <p className="subtitle">Investigación Publicitaria y Análisis Visual</p>
+        <p className="subtitle">Investigación Publicitaria con Persistencia de Datos</p>
         
         <div className="upload-container">
           <input type="file" accept="image/*" onChange={handleFileChange} />
-          
           <button onClick={uploadToS3} disabled={uploading || !file}>
-            {uploading ? "Procesando Análisis..." : "Analizar Pieza Publicitaria"}
+            {uploading ? "Procesando..." : "Analizar y Guardar"}
           </button>
-          
-          {file && <p style={{marginTop: '1rem', fontSize: '0.9rem'}}>Archivo: <strong>{file.name}</strong></p>}
         </div>
 
         {labels.length > 0 && (
           <div className="results-container">
-            <h2>Resultados del Análisis</h2>
+            <h2>Resultados Guardados</h2>
             <div className="results-grid">
               {labels.map((label, index) => (
                 <div className="label-card" key={index}>
                   <span className="label-name">{label.Name}</span>
                   <div className="confidence-bar-bg">
-                    <div 
-                      className="confidence-bar-fill" 
-                      style={{ width: `${label.Confidence}%` }}
-                    ></div>
+                    <div className="confidence-bar-fill" style={{ width: `${label.Confidence}%` }}></div>
                   </div>
-                  <span className="confidence-text">
-                    Confianza: {label.Confidence.toFixed(2)}%
-                  </span>
+                  <span className="confidence-text">{label.Confidence.toFixed(2)}%</span>
                 </div>
               ))}
             </div>
