@@ -1,38 +1,130 @@
+/* Configuración General */
+:root {
+  --primary: #2563eb;
+  --bg-body: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --accent: #10b981;
+}
+
 .App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+  background-color: var(--bg-body);
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--text-main);
+  padding: 2rem;
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin-bottom: 3rem;
+}
+
+/* Contenedor de Subida (Card) */
+.upload-container {
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  margin-bottom: 2rem;
+  border: 2px dashed #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.upload-container:hover {
+  border-color: var(--primary);
+}
+
+/* Estilo de Botones */
+input[type="file"] {
+  margin-bottom: 1.5rem;
+  display: block;
+  width: 100%;
+  color: var(--text-muted);
+}
+
+button {
+  background-color: var(--primary);
   color: white;
+  border: none;
+  padding: 0.8rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  width: 100%;
+  font-size: 1rem;
 }
 
-.App-link {
-  color: #61dafb;
+button:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Resultados de la IA */
+.results-container {
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  text-align: left;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.label-card {
+  background: #f1f5f9;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border-left: 4px solid var(--accent);
+}
+
+.label-name {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+/* Barra de Confianza Visual */
+.confidence-bar-bg {
+  background: #e2e8f0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.confidence-bar-fill {
+  background: var(--accent);
+  height: 100%;
+  border-radius: 4px;
+}
+
+.confidence-text {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.4rem;
+  color: var(--text-muted);
+  text-align: right;
 }
