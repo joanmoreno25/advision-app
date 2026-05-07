@@ -1,120 +1,222 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// --- IMPORTACIONES DE AWS ---
 import { s3Client, rekognitionClient, BUCKET_NAME } from './aws-config';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { DetectLabelsCommand } from "@aws-sdk/client-rekognition";
+import { DetectLabelsCommand, DetectTextCommand } from "@aws-sdk/client-rekognition";
 
-// --- IMPORTACIONES DE FIREBASE ---
-import { db } from './firebase-config'; // Nuestra conexión
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // Herramientas de la base de datos
+import { db } from './firebase-config';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy } from "firebase/firestore";
 
 function App() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [labels, setLabels] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchHistory = async () => {
+    try {
+      const q = query(collection(db, "analisis"), orderBy("fechaCreacion", "desc"));
+      const querySnapshot = await getDocs(q);
+      const docs = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setHistory(docs);
+    } catch (error) {
+      console.error("Error al cargar historial:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
-    setLabels([]);
   };
 
-  // --- NUEVA FUNCIÓN: GUARDAR EN LA BASE DE DATOS ---
-  const saveToFirestore = async (imageName, detectedLabels) => {
+  const saveToFirestore = async (imageName, detectedLabels, detectedText) => {
     try {
-      // 1. Creamos la "ficha" con los datos que queremos guardar
       const analysisData = {
         nombreImagen: imageName,
         etiquetas: detectedLabels.map(l => ({ 
           nombre: l.Name, 
           confianza: l.Confidence 
         })),
-        fechaCreacion: serverTimestamp() // Usa la hora oficial de Google
+        textoDetectado: detectedText.map(t => t.DetectedText),
+        fechaCreacion: serverTimestamp()
       };
-
-      // 2. Le decimos a Firebase: "Añade este documento a la carpeta 'analisis'"
-      const docRef = await addDoc(collection(db, "analisis"), analysisData);
-      
-      console.log("Análisis guardado en Firebase con ID: ", docRef.id);
+      await addDoc(collection(db, "analisis"), analysisData);
+      fetchHistory(); 
     } catch (error) {
-      console.error("Error al guardar en Firebase:", error);
+      console.error("Error al guardar:", error);
     }
   };
 
-  const analyzeImage = async (imageName) => {
+  // ¡MODIFICADO!: Ahora recibe la imagen en RAM (fileData) y no usa S3Object
+  const analyzeImage = async (imageName, fileData) => {
     try {
-      const command = new DetectLabelsCommand({
-        Image: { S3Object: { Bucket: BUCKET_NAME, Name: `originals/${imageName}` } },
+      const imageParams = {
+        Image: { Bytes: fileData } // <- La magia está aquí
+      };
+
+      const labelsCommand = new DetectLabelsCommand({
+        ...imageParams,
         MaxLabels: 10,
         MinConfidence: 75,
       });
 
-      const response = await rekognitionClient.send(command);
-      setLabels(response.Labels);
+      const textCommand = new DetectTextCommand(imageParams);
 
-      // ¡PASO CLAVE!: Guardamos el resultado en la base de datos
-      await saveToFirestore(imageName, response.Labels);
+      const [labelsResponse, textResponse] = await Promise.all([
+        rekognitionClient.send(labelsCommand),
+        rekognitionClient.send(textCommand)
+      ]);
 
+      const textLines = textResponse.TextDetections.filter(item => item.Type === 'LINE');
+
+      await saveToFirestore(imageName, labelsResponse.Labels, textLines);
     } catch (error) {
-      console.error("Error en Rekognition:", error);
-      alert("La IA no pudo analizar la imagen.");
+      console.error("ERROR DETALLADO AWS:", error);
+      alert(`Error en IA: ${error.name}.`);
     }
   };
 
   const uploadToS3 = async () => {
-    if (!file) return alert("Selecciona una imagen.");
+    if (!file) return alert("Selecciona un archivo");
     setUploading(true);
+    
+    const safeFileName = file.name.replace(/\s+/g, '_');
+
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const fileData = new Uint8Array(arrayBuffer);
-      const command = new PutObjectCommand({
+      const fileData = new Uint8Array(arrayBuffer); // Bytes de la foto
+      
+      // 1. Sube al bucket
+      await s3Client.send(new PutObjectCommand({
         Bucket: BUCKET_NAME,
-        Key: `originals/${file.name}`,
+        Key: `originals/${safeFileName}`,
         Body: fileData,
         ContentType: file.type
-      });
-      await s3Client.send(command);
-      await analyzeImage(file.name);
-      alert("¡Imagen analizada y guardada con éxito!");
+      }));
+      
+      // 2. Envía la foto directa a la IA
+      await analyzeImage(safeFileName, fileData); 
+      
     } catch (error) {
-      console.error("Fallo:", error);
-      alert("Error en el proceso.");
+      console.error("Fallo general:", error);
     } finally {
       setUploading(false);
     }
   };
 
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Catalogador IA</h1>
-        <p className="subtitle">Investigación Publicitaria con Persistencia de Datos</p>
-        
-        <div className="upload-container">
-          <input type="file" accept="image/*" onChange={handleFileChange} />
-          <button onClick={uploadToS3} disabled={uploading || !file}>
-            {uploading ? "Procesando..." : "Analizar y Guardar"}
-          </button>
-        </div>
+  const filteredHistory = history.filter(item => {
+    if (!searchTerm) return true;
+    return item.etiquetas?.some(label => 
+      label.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
-        {labels.length > 0 && (
-          <div className="results-container">
-            <h2>Resultados Guardados</h2>
-            <div className="results-grid">
-              {labels.map((label, index) => (
-                <div className="label-card" key={index}>
-                  <span className="label-name">{label.Name}</span>
-                  <div className="confidence-bar-bg">
-                    <div className="confidence-bar-fill" style={{ width: `${label.Confidence}%` }}></div>
-                  </div>
-                  <span className="confidence-text">{label.Confidence.toFixed(2)}%</span>
-                </div>
-              ))}
+  return (
+    <div className="app-container">
+      <div className="bg-shape bg-shape-1"></div>
+      <div className="bg-shape bg-shape-2"></div>
+
+      <header className="main-header">
+        <h1>Catalogador <span className="text-gradient">IA</span></h1>
+        <p>Análisis Avanzado de Piezas Publicitarias</p>
+      </header>
+
+      <main className="main-content">
+        <section className="upload-section card glassmorphism">
+          <h2>Nuevo Análisis</h2>
+          <div className="upload-controls">
+            <input type="file" className="file-input" onChange={handleFileChange} id="file-upload"/>
+            <label htmlFor="file-upload" className="file-label">
+              <span className="upload-icon">📁</span>
+              {file ? file.name : "Subir imagen publicitaria"}
+            </label>
+            <button className="btn-primary" onClick={uploadToS3} disabled={uploading}>
+              {uploading ? <span className="loader"></span> : "Procesar con IA"}
+            </button>
+          </div>
+        </section>
+
+        <section className="history-section">
+          <div className="section-header">
+            <div className="header-title-group">
+              <h2>Base de Datos Histórica</h2>
+              <span className="badge-count">{filteredHistory.length} registros</span>
+            </div>
+            
+            <div className="search-container">
+              <input 
+                type="text" 
+                placeholder="Buscar por etiqueta..." 
+                className="search-input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
-        )}
-      </header>
+          
+          <div className="grid-container">
+            {filteredHistory.map((item, index) => (
+              <article 
+                key={item.id} 
+                className="analysis-card" 
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="image-wrapper">
+                  <img 
+                    src={`https://${BUCKET_NAME}.s3.eu-south-2.amazonaws.com/originals/${item.nombreImagen}`} 
+                    alt={item.nombreImagen} 
+                  />
+                  <div className="image-overlay"></div>
+                </div>
+                <div className="data-wrapper">
+                  <h3 className="file-title">{item.nombreImagen}</h3>
+                  
+                  <div className="labels-list">
+                    {item.etiquetas?.slice(0, 5).map((label, i) => (
+                      <div key={i} className="label-item">
+                        <div className="label-header">
+                          <span className="label-name">{label.nombre}</span>
+                          <span className="label-percent">{label.confianza.toFixed(1)}%</span>
+                        </div>
+                        <div className="progress-bar-bg">
+                          <div 
+                            className="progress-bar-fill" 
+                            style={{ 
+                              width: `${label.confianza}%`,
+                              background: label.confianza > 95 ? 'linear-gradient(90deg, #10b981, #34d399)' : 
+                                         label.confianza > 85 ? 'linear-gradient(90deg, #3b82f6, #60a5fa)' : 
+                                         'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {item.textoDetectado && item.textoDetectado.length > 0 && (
+                    <div className="ocr-section">
+                      <h4 className="ocr-title">📝 Texto Extraído</h4>
+                      <div className="ocr-bubbles">
+                        {item.textoDetectado.map((txt, idx) => (
+                          <span key={idx} className="ocr-bubble">"{txt}"</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

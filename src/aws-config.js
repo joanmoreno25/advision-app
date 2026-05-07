@@ -1,25 +1,24 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { RekognitionClient } from "@aws-sdk/client-rekognition";
 
-// Cargamos las llaves desde el archivo .env de forma segura
+// Cargamos las llaves desde el archivo .env
 const credentials = {
-    accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
+  accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
 };
 
 const region = process.env.REACT_APP_AWS_REGION;
 
-// Creamos el cliente de S3 (para las fotos)
+// Cliente de S3 (Guardará las fotos en tu bucket de España)
 export const s3Client = new S3Client({
-    region,
-    credentials
+  region,
+  credentials
 });
 
-// Creamos el cliente de Rekognition (para la IA)
+// Cliente de Rekognition (Obligamos a que procese en Irlanda para evitar bloqueos)
 export const rekognitionClient = new RekognitionClient({
-    region,
-    credentials
+  region: "eu-west-1", 
+  credentials
 });
 
-// Definimos el nombre de tu bucket para usarlo fácilmente
 export const BUCKET_NAME = "tfg-joan-moreno";
