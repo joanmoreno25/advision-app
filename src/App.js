@@ -3,14 +3,15 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
-
-const Home = () => <div>Landing Page Pública (En construcción)</div>;
+import Landing from './pages/Landing'; // Importación actualizada
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        {/* Ruta pública principal conectada a Landing */}
+        <Route path="/" element={<Landing />} />
+        
         <Route path="/login" element={<Login />} />
 
         <Route 
