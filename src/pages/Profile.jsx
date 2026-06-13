@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase-config';
@@ -9,6 +10,7 @@ import { s3Client, BUCKET_NAME } from '../aws-config';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 
 const Profile = () => {
+  const { t, i18n } = useTranslation();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -37,7 +39,8 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const todayDate = new Date().toLocaleDateString('es-ES', { 
+  // La fecha se formatea dinámicamente usando el locale activo de i18n
+  const todayDate = new Date().toLocaleDateString(i18n.language, { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
@@ -78,6 +81,8 @@ const Profile = () => {
 
     try {
       localStorage.setItem('appLanguage', language);
+      // ¡Aquí está la instrucción clave para que actualice TODA la app al momento!
+      i18n.changeLanguage(language); 
 
       let newPhotoUrl = currentUser.photoURL;
 
@@ -110,16 +115,16 @@ const Profile = () => {
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
         if (!passwordRegex.test(newPassword)) {
           setIsLoading(false);
-          return setErrorMsg("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo especial (@$!%*?&).");
+          return setErrorMsg(t('profile.error_password_regex'));
         }
 
         if (!currentPassword) {
           setIsLoading(false);
-          return setErrorMsg("Debes introducir tu contraseña actual para establecer una nueva.");
+          return setErrorMsg(t('profile.error_current_password_required'));
         }
         if (newPassword !== confirmPassword) {
           setIsLoading(false);
-          return setErrorMsg("Las nuevas contraseñas no coinciden.");
+          return setErrorMsg(t('profile.error_passwords_not_match'));
         }
 
         const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
@@ -127,15 +132,15 @@ const Profile = () => {
         await updatePassword(currentUser, newPassword);
       }
 
-      setSuccessMsg("Perfil actualizado correctamente.");
+      setSuccessMsg(t('profile.success_profile_updated'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
       if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        setErrorMsg("La contraseña actual es incorrecta.");
+        setErrorMsg(t('profile.error_wrong_password'));
       } else {
-        setErrorMsg("Error al actualizar el perfil. Inténtalo de nuevo.");
+        setErrorMsg(t('profile.error_update_profile'));
         console.error(error);
       }
     } finally {
@@ -148,7 +153,7 @@ const Profile = () => {
       await signOut(auth);
       navigate('/login');
     } catch (error) {
-      setErrorMsg("Error al cerrar sesión.");
+      setErrorMsg(t('profile.error_logout'));
     }
   };
 
@@ -159,10 +164,10 @@ const Profile = () => {
     } catch (error) {
       if (error.code === 'auth/requires-recent-login') {
         setShowDeleteModal(false);
-        setErrorMsg("Por seguridad, debes volver a iniciar sesión para eliminar tu cuenta.");
+        setErrorMsg(t('profile.error_requires_recent_login'));
       } else {
         setShowDeleteModal(false);
-        setErrorMsg("Error al eliminar la cuenta.");
+        setErrorMsg(t('profile.error_delete_account'));
       }
     }
   };
@@ -178,7 +183,7 @@ const Profile = () => {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
-          Volver al Dashboard
+          {t('profile.back_dashboard')}
         </button>
       </div>
 
@@ -193,7 +198,7 @@ const Profile = () => {
             />
             <div>
               <h1 className="text-[#0F172A] text-[28px] md:text-[36px] font-extrabold leading-tight">
-                ¡Bienvenido/a, <span className="text-[#3B82F6]">{currentUser?.displayName || 'Usuario'}</span>!
+                {t('profile.welcome')}<span className="text-[#3B82F6]">{currentUser?.displayName || t('profile.user')}</span>!
               </h1>
               <p className="text-[#64748B] text-[16px] font-medium capitalize mt-1">
                 {todayDate}
@@ -221,7 +226,7 @@ const Profile = () => {
           <div className="flex flex-col gap-2 bg-slate-50 px-5 py-3 rounded-[12px] border border-slate-100">
             <button onClick={() => fileInputRef.current.click()} className="text-[#3B82F6] font-semibold text-[15px] text-left hover:text-[#2563EB] flex items-center gap-2 transition-colors">
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              Cambiar foto de perfil
+              {t('profile.change_photo')}
             </button>
           </div>
         </div>
@@ -232,11 +237,11 @@ const Profile = () => {
             <div className="flex flex-col gap-6">
               <h2 className="text-[#0F172A] text-[20px] font-extrabold border-b border-gray-100 pb-3 flex items-center gap-2">
                 <svg width="22" height="22" fill="none" stroke="#3B82F6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                Datos Personales
+                {t('profile.personal_data')}
               </h2>
               
               <div>
-                <label className="block text-[#475569] text-[14px] font-bold mb-2">Nombre Completo</label>
+                <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.fullname')}</label>
                 <input 
                   type="text" 
                   value={currentUser?.displayName || ''}
@@ -246,7 +251,7 @@ const Profile = () => {
               </div>
 
               <div>
-                <label className="block text-[#475569] text-[14px] font-bold mb-2">Correo electrónico</label>
+                <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.email')}</label>
                 <input 
                   type="email" 
                   value={currentUser?.email || ''}
@@ -257,17 +262,17 @@ const Profile = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[#475569] text-[14px] font-bold mb-2">Teléfono</label>
+                  <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.phone')}</label>
                   <input 
                     type="tel" 
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+34 600 000 000"
+                    placeholder={t('profile.phone_placeholder')}
                     className="w-full bg-white border border-[#CBD5E1] text-[#0F172A] text-[15px] font-medium rounded-[10px] px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-[#3B82F6] focus:border-[#3B82F6] transition-all placeholder:text-[#94A3B8]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[#475569] text-[14px] font-bold mb-2">Fecha de nacimiento</label>
+                  <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.birthdate')}</label>
                   <input 
                     type="date" 
                     value={birthDate}
@@ -278,18 +283,18 @@ const Profile = () => {
               </div>
 
               <div>
-                <label className="block text-[#475569] text-[14px] font-bold mb-2">Idioma</label>
+                <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.language')}</label>
                 <div className="relative">
                   <select 
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                     className="w-full bg-white border border-[#CBD5E1] text-[#0F172A] text-[15px] font-medium rounded-[10px] px-4 py-3.5 appearance-none focus:outline-none focus:ring-1 focus:ring-[#3B82F6] focus:border-[#3B82F6] transition-all cursor-pointer"
                   >
-                    <option value="es">Español</option>
-                    <option value="en">Inglés</option>
-                    <option value="fr">Francés</option>
-                    <option value="it">Italiano</option>
-                    <option value="de">Alemán</option>
+                    <option value="es">{t('profile.lang_es')}</option>
+                    <option value="en">{t('profile.lang_en')}</option>
+                    <option value="fr">{t('profile.lang_fr')}</option>
+                    <option value="it">{t('profile.lang_it')}</option>
+                    <option value="de">{t('profile.lang_de')}</option>
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -301,37 +306,37 @@ const Profile = () => {
             <div className="flex flex-col gap-6">
               <h2 className="text-[#0F172A] text-[20px] font-extrabold border-b border-gray-100 pb-3 flex items-center gap-2">
                 <svg width="22" height="22" fill="none" stroke="#3B82F6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                Localización
+                {t('profile.location')}
               </h2>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-[#475569] text-[14px] font-bold mb-2">Dirección</label>
+                  <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.address')}</label>
                   <input 
                     type="text" 
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Calle, número, piso..."
+                    placeholder={t('profile.address_placeholder')}
                     className="w-full bg-white border border-[#CBD5E1] text-[#0F172A] text-[15px] font-medium rounded-[10px] px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-[#3B82F6] focus:border-[#3B82F6] transition-all placeholder:text-[#94A3B8]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[#475569] text-[14px] font-bold mb-2">País</label>
+                  <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.country')}</label>
                   <input 
                     type="text" 
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
-                    placeholder="Ej. España"
+                    placeholder={t('profile.country_placeholder')}
                     className="w-full bg-white border border-[#CBD5E1] text-[#0F172A] text-[15px] font-medium rounded-[10px] px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-[#3B82F6] focus:border-[#3B82F6] transition-all placeholder:text-[#94A3B8]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[#475569] text-[14px] font-bold mb-2">Código Postal</label>
+                  <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.postal_code')}</label>
                   <input 
                     type="text" 
                     value={postalCode}
                     onChange={(e) => setPostalCode(e.target.value)}
-                    placeholder="Ej. 28001"
+                    placeholder={t('profile.postal_code_placeholder')}
                     className="w-full bg-white border border-[#CBD5E1] text-[#0F172A] text-[15px] font-medium rounded-[10px] px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-[#3B82F6] focus:border-[#3B82F6] transition-all placeholder:text-[#94A3B8]"
                   />
                 </div>
@@ -339,11 +344,11 @@ const Profile = () => {
 
               <h2 className="text-[#0F172A] text-[20px] font-extrabold border-b border-gray-100 pb-3 mt-2 flex items-center gap-2">
                 <svg width="22" height="22" fill="none" stroke="#3B82F6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                Seguridad
+                {t('profile.security')}
               </h2>
               
               <div>
-                <label className="block text-[#475569] text-[14px] font-bold mb-2">Contraseña actual</label>
+                <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.current_password')}</label>
                 <div className="relative">
                   <input 
                     type={showCurrentPassword ? "text" : "password"} 
@@ -369,7 +374,7 @@ const Profile = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[#475569] text-[14px] font-bold mb-2">Nueva contraseña</label>
+                  <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.new_password')}</label>
                   <div className="relative">
                     <input 
                       type={showNewPassword ? "text" : "password"} 
@@ -394,7 +399,7 @@ const Profile = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[#475569] text-[14px] font-bold mb-2">Confirmar contraseña</label>
+                  <label className="block text-[#475569] text-[14px] font-bold mb-2">{t('profile.confirm_password')}</label>
                   <div className="relative">
                     <input 
                       type={showConfirmPassword ? "text" : "password"} 
@@ -428,14 +433,14 @@ const Profile = () => {
               onClick={handleLogout}
               className="w-full text-slate-600 bg-white font-semibold text-[16px] px-8 py-4 hover:bg-slate-50 hover:text-red-600 rounded-[12px] transition-colors shadow-sm border border-slate-200"
             >
-              Cerrar sesión
+              {t('profile.logout')}
             </button>
             <button 
               type="submit" 
               disabled={isLoading}
               className="w-full bg-[#2563EB] text-white text-[16px] font-semibold px-12 py-4 rounded-[12px] hover:bg-[#1D4ED8] hover:shadow-md transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
             >
-              {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+              {isLoading ? t('profile.saving') : t('profile.save_changes')}
             </button>
           </div>
         </form>
@@ -446,7 +451,7 @@ const Profile = () => {
             onClick={() => setShowDeleteModal(true)}
             className="text-slate-400 hover:text-red-500 font-medium text-[14px] transition-colors underline"
           >
-            Eliminar cuenta permanentemente
+            {t('profile.delete_account')}
           </button>
         </div>
 
@@ -458,22 +463,22 @@ const Profile = () => {
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6">
               <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             </div>
-            <h3 className="text-[#0F172A] text-[24px] font-extrabold mb-3">¿Eliminar tu cuenta?</h3>
+            <h3 className="text-[#0F172A] text-[24px] font-extrabold mb-3">{t('profile.modal_delete_title')}</h3>
             <p className="text-[#64748B] text-[15px] mb-8 leading-relaxed font-medium">
-              Estás a punto de eliminar tu cuenta de AdVision <span className="font-bold text-[#0F172A]">permanentemente</span>. Todos tus datos, configuraciones, análisis e historial de imágenes se borrarán y no podrán ser recuperados. ¿Estás absolutamente seguro de que deseas proceder?
+              {t('profile.modal_delete_text_1')}<span className="font-bold text-[#0F172A]">{t('profile.modal_delete_text_2')}</span>{t('profile.modal_delete_text_3')}
             </p>
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button 
                 onClick={() => setShowDeleteModal(false)}
                 className="w-full sm:w-auto px-6 py-3.5 text-[#475569] font-bold bg-slate-100 rounded-[10px] hover:bg-slate-200 transition-colors"
               >
-                Cancelar
+                {t('profile.cancel')}
               </button>
               <button 
                 onClick={handleDeleteAccount}
                 className="w-full sm:w-auto px-6 py-3.5 text-white font-bold bg-red-600 rounded-[10px] hover:bg-red-700 shadow-md transition-all"
               >
-                Sí, eliminar permanentemente
+                {t('profile.confirm_delete')}
               </button>
             </div>
           </div>

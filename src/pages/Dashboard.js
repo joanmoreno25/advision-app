@@ -150,7 +150,7 @@ function Dashboard() {
   };
 
   const uploadToS3 = async () => {
-    if (files.length === 0) return alert("Selecciona al menos un archivo primero");
+    if (files.length === 0) return alert(t('dashboard.alert_select_file'));
     setUploading(true);
    
     try {
@@ -208,7 +208,7 @@ function Dashboard() {
             {dropdownOpen && (
               <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 overflow-hidden">
                 <div className="px-4 py-2 border-b border-gray-100 mb-1">
-                  <p className="text-sm font-semibold text-gray-800 truncate">{currentUser?.displayName || 'Usuario'}</p>
+                  <p className="text-sm font-semibold text-gray-800 truncate">{currentUser?.displayName || t('dashboard.user')}</p>
                   <p className="text-xs text-gray-500 truncate">{currentUser?.email}</p>
                 </div>
                 <button 
@@ -287,7 +287,7 @@ function Dashboard() {
               </div>
             ) : (
               <p className="text-slate-300 text-[20px] md:text-[22px] font-medium text-center px-4">
-                {t('dashboard.drag_drop')} <span className="text-[#3B82F6] font-bold hover:underline hover:text-blue-400 transition-colors">{t('dashboard.navigate')}</span>
+                {t('dashboard.drag_drop')} <span className="text-[#3B82F6] font-bold hover:underline hover:text-blue-400 transition-colors">{t('dashboard.browse')}</span>
               </p>
             )}
           </div>
@@ -297,7 +297,7 @@ function Dashboard() {
             disabled={uploading || files.length === 0}
             className="mt-8 bg-[#0052FF] text-white text-[20px] font-bold px-14 py-4 rounded-[10px] hover:bg-[#003BCC] hover:scale-105 hover:shadow-[0_10px_25px_rgba(0,82,255,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none flex items-center justify-center min-w-[240px]"
           >
-            {uploading ? t('dashboard.processing') : t('dashboard.process')}
+            {uploading ? t('dashboard.processing') : t('dashboard.process_ai')}
           </button>
         </div>
       </div>
