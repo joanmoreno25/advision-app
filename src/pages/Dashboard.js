@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { s3Client, rekognitionClient, BUCKET_NAME } from '../aws-config';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -13,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.svg';
 
 function Dashboard() {
+  const { t } = useTranslation();
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [history, setHistory] = useState([]);
@@ -213,13 +215,13 @@ function Dashboard() {
                   onClick={() => { setDropdownOpen(false); navigate('/profile'); }} 
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Editar Perfil
+                  {t('dashboard.edit_profile')}
                 </button>
                 <button 
                   onClick={handleLogout} 
                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
                 >
-                  Cerrar Sesión
+                  {t('dashboard.logout')}
                 </button>
               </div>
             )}
@@ -235,7 +237,7 @@ function Dashboard() {
             </h1>
           </div>
           <p className="text-[#94A3B8] text-[20px] md:text-[24px] font-medium mt-2">
-            Análisis Avanzado de Piezas Publicitarias
+            {t('dashboard.title')}
           </p>
           <div className="w-[400px] h-px bg-slate-700 mt-8"></div>
         </div>
@@ -268,7 +270,7 @@ function Dashboard() {
             {files.length > 0 ? (
               <div className="flex flex-col items-center px-4">
                 <p className="text-white font-medium text-[20px] mb-3">
-                  <span className="text-[#3B82F6]">{files.length}</span> {files.length === 1 ? 'archivo seleccionado' : 'archivos seleccionados'}
+                  <span className="text-[#3B82F6]">{files.length}</span> {files.length === 1 ? t('dashboard.file_selected_singular') : t('dashboard.files_selected_plural')}
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center max-w-md">
                   {files.slice(0, 3).map((f, i) => (
@@ -278,14 +280,14 @@ function Dashboard() {
                   ))}
                   {files.length > 3 && (
                     <span className="text-slate-400 text-[14px] px-2 py-1.5 font-medium">
-                      + {files.length - 3} más
+                      + {files.length - 3} {t('dashboard.more')}
                     </span>
                   )}
                 </div>
               </div>
             ) : (
               <p className="text-slate-300 text-[20px] md:text-[22px] font-medium text-center px-4">
-                Arrastre los archivos aquí o <span className="text-[#3B82F6] font-bold hover:underline hover:text-blue-400 transition-colors">navegue</span>
+                {t('dashboard.drag_drop')} <span className="text-[#3B82F6] font-bold hover:underline hover:text-blue-400 transition-colors">{t('dashboard.navigate')}</span>
               </p>
             )}
           </div>
@@ -295,7 +297,7 @@ function Dashboard() {
             disabled={uploading || files.length === 0}
             className="mt-8 bg-[#0052FF] text-white text-[20px] font-bold px-14 py-4 rounded-[10px] hover:bg-[#003BCC] hover:scale-105 hover:shadow-[0_10px_25px_rgba(0,82,255,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none flex items-center justify-center min-w-[240px]"
           >
-            {uploading ? 'Procesando...' : 'Procesar con IA'}
+            {uploading ? t('dashboard.processing') : t('dashboard.process')}
           </button>
         </div>
       </div>
@@ -304,10 +306,10 @@ function Dashboard() {
         <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
           <div className="flex items-center gap-4">
             <h2 className="text-[#0F172A] text-[34px] md:text-[38px] font-extrabold tracking-tight">
-              Banco de Imágenes
+              {t('dashboard.history_title')}
             </h2>
             <span className="bg-[#6D28D9] text-white text-[16px] font-bold px-4 py-1.5 rounded-full shadow-sm">
-              {filteredHistory.length} registros
+              {filteredHistory.length} {t('dashboard.records')}
             </span>
           </div>
           
@@ -319,7 +321,7 @@ function Dashboard() {
             </div>
             <input
               type="text"
-              placeholder="Buscar por etiquetas, nombre de archivo o texto de la imagen..."
+              placeholder={t('dashboard.search_placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-white text-[#475569] text-[16px] font-medium border border-transparent pl-12 pr-4 py-4 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] shadow-sm placeholder:text-gray-400"
@@ -341,14 +343,14 @@ function Dashboard() {
               
               <div className="p-6 flex-1 flex flex-col">
                 <div className="mb-5">
-                  <p className="text-[12px] font-bold text-[#64748B] uppercase tracking-wider mb-1">Nombre del archivo</p>
+                  <p className="text-[12px] font-bold text-[#64748B] uppercase tracking-wider mb-1">{t('dashboard.filename')}</p>
                   <h3 className="text-[#0F172A] text-[16px] font-bold truncate" title={item.nombreImagen}>
                     {item.nombreImagen}
                   </h3>
                 </div>
                 
                 <div className="flex flex-col flex-1">
-                  <p className="text-[12px] font-bold text-[#64748B] uppercase tracking-wider mb-3">Etiquetas</p>
+                  <p className="text-[12px] font-bold text-[#64748B] uppercase tracking-wider mb-3">{t('dashboard.tags')}</p>
                   <div className="flex flex-col gap-3">
                     {item.etiquetas?.slice(0, 5).map((label, i) => (
                       <div key={i} className="flex flex-col gap-1.5">
@@ -372,7 +374,7 @@ function Dashboard() {
 
                 {item.textoDetectado && item.textoDetectado.length > 0 && (
                   <div className="mt-5 pt-4 border-t border-gray-100">
-                    <p className="text-[12px] font-bold text-[#64748B] uppercase tracking-wider mb-2">Texto detectado</p>
+                    <p className="text-[12px] font-bold text-[#64748B] uppercase tracking-wider mb-2">{t('dashboard.detected_text')}</p>
                     <div className="flex flex-wrap gap-2">
                        {item.textoDetectado.slice(0, 3).map((txt, idx) => (
                           <span key={idx} className="bg-blue-50 text-blue-700 border border-blue-100 text-[12px] px-2.5 py-1 rounded-md font-medium">"{txt}"</span>
