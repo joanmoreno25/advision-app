@@ -17,7 +17,11 @@
     "filename": "Nombre del archivo",
     "tags": "Etiquetas",
     "detected_text": "Texto detectado",
-    "alert_select_file": "Selecciona al menos un archivo primero"
+    "alert_select_file": "Selecciona al menos un archivo primero",
+    "export": "Exportar",
+    "export_csv": "Exportar CSV",
+    "export_json": "Exportar JSON",
+    "export_excel": "Exportar Excel"
   },
   "profile": {
     "back_dashboard": "Volver al Dashboard",
