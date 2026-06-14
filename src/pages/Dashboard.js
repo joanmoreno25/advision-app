@@ -15,7 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.svg';
 
 function Dashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation(); // Extracción de i18n añadida
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [history, setHistory] = useState([]);
@@ -133,19 +133,26 @@ function Dashboard() {
 
       const textLines = textResponse.TextDetections.filter(item => item.Type === 'LINE');
 
-      const targetLang = localStorage.getItem('appLanguage') || 'es';
+      const targetLangs = ['es', 'fr', 'it', 'de']; // El inglés viene nativo de AWS
 
-      const translatedLabels = await Promise.all(
+      // Construcción del diccionario multilingüe concurrente
+      const multilangLabels = await Promise.all(
         labelsResponse.Labels.map(async (label) => {
-          const translatedName = await translateLabel(label.Name, targetLang);
+          const nombresDict = { en: label.Name }; // Asignamos el original en inglés
+          
+          await Promise.all(targetLangs.map(async (lang) => {
+             nombresDict[lang] = await translateLabel(label.Name, lang);
+          }));
+
           return {
-            nombre: translatedName,
-            confianza: label.Confidence
+            nombres: nombresDict, // Nueva arquitectura: Diccionario completo guardado en Firebase
+            confianza: label.Confidence,
+            nombre: nombresDict['es'] // Fallback de seguridad para compatibilidad con código antiguo
           };
         })
       );
 
-      await saveToFirestore(imageName, translatedLabels, textLines);
+      await saveToFirestore(imageName, multilangLabels, textLines);
     } catch (error) {
       console.error("ERROR DETALLADO AWS:", error);
     }
@@ -185,18 +192,27 @@ function Dashboard() {
     if (!searchTerm) return true;
     
     const term = searchTerm.toLowerCase();
+    const currentLang = i18n.language || 'es'; // Detección del idioma activo
     
     const matchName = item.nombreImagen?.toLowerCase().includes(term);
-    const matchLabel = item.etiquetas?.some(label => label.nombre.toLowerCase().includes(term));
+    const matchLabel = item.etiquetas?.some(label => {
+      // Evalúa la búsqueda utilizando únicamente la palabra en el idioma activo
+      const labelText = label.nombres ? label.nombres[currentLang] : label.nombre;
+      return labelText?.toLowerCase().includes(term);
+    });
     const matchText = item.textoDetectado?.some(txt => txt.toLowerCase().includes(term));
     
     return matchName || matchLabel || matchText;
   });
 
   const exportToCSV = () => {
+    const currentLang = i18n.language || 'es';
     const headers = ["Archivo", "Etiquetas", "Texto Detectado"];
     const rows = filteredHistory.map(item => {
-      const tags = item.etiquetas ? item.etiquetas.map(e => `${e.nombre} (${e.confianza.toFixed(1)}%)`).join(" - ") : "";
+      const tags = item.etiquetas ? item.etiquetas.map(e => {
+        const name = e.nombres ? e.nombres[currentLang] : e.nombre;
+        return `${name} (${e.confianza.toFixed(1)}%)`;
+      }).join(" - ") : "";
       const texts = item.textoDetectado ? item.textoDetectado.join(" | ") : "";
       return `"${item.nombreImagen}","${tags}","${texts}"`;
     });
@@ -210,10 +226,11 @@ function Dashboard() {
   };
 
   const exportToJSON = () => {
+    const currentLang = i18n.language || 'es';
     const cleanData = filteredHistory.map(item => ({
       archivo: item.nombreImagen,
       etiquetas: item.etiquetas ? item.etiquetas.map(e => ({
-        nombre: e.nombre,
+        nombre: e.nombres ? e.nombres[currentLang] : e.nombre,
         confianza: Number(e.confianza.toFixed(2))
       })) : [],
       textoDetectado: item.textoDetectado || []
@@ -228,9 +245,13 @@ function Dashboard() {
   };
 
   const exportToExcel = () => {
+    const currentLang = i18n.language || 'es';
     const exportData = filteredHistory.map(item => ({
       "Nombre del archivo": item.nombreImagen,
-      "Etiquetas": item.etiquetas ? item.etiquetas.map(e => `${e.nombre} (${e.confianza.toFixed(1)}%)`).join(", ") : "",
+      "Etiquetas": item.etiquetas ? item.etiquetas.map(e => {
+        const name = e.nombres ? e.nombres[currentLang] : e.nombre;
+        return `${name} (${e.confianza.toFixed(1)}%)`;
+      }).join(", ") : "",
       "Texto Detectado": item.textoDetectado ? item.textoDetectado.join(" | ") : ""
     }));
 
@@ -438,23 +459,29 @@ function Dashboard() {
                 <div className="flex flex-col flex-1">
                   <p className="text-[12px] font-bold text-[#64748B] uppercase tracking-wider mb-3">{t('dashboard.tags')}</p>
                   <div className="flex flex-col gap-3">
-                    {item.etiquetas?.slice(0, 5).map((label, i) => (
-                      <div key={i} className="flex flex-col gap-1.5">
-                        <div className="flex justify-between items-center text-[13px] font-bold text-[#0F172A]">
-                          <span className="capitalize">{label.nombre}</span>
-                          <span className="text-gray-500">{label.confianza.toFixed(1)}%</span>
+                    {item.etiquetas?.slice(0, 5).map((label, i) => {
+                      // Interpretación dinámica del idioma para el renderizado
+                      const currentLang = i18n.language || 'es';
+                      const displayName = label.nombres ? label.nombres[currentLang] : label.nombre;
+
+                      return (
+                        <div key={i} className="flex flex-col gap-1.5">
+                          <div className="flex justify-between items-center text-[13px] font-bold text-[#0F172A]">
+                            <span className="capitalize">{displayName}</span>
+                            <span className="text-gray-500">{label.confianza.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${label.confianza}%`,
+                                backgroundColor: label.confianza > 95 ? '#10b981' : label.confianza > 85 ? '#3B82F6' : '#f59e0b'
+                              }}
+                            ></div>
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${label.confianza}%`,
-                              backgroundColor: label.confianza > 95 ? '#10b981' : label.confianza > 85 ? '#3B82F6' : '#f59e0b'
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
