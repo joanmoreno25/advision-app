@@ -343,14 +343,73 @@ function Dashboard() {
   };
 
   const exportToPDF = async (item, elementId) => {
-    const element = document.getElementById(elementId);
-    if (!element) return;
+    const originalElement = document.getElementById(elementId);
+    if (!originalElement) return;
+
+    // 1. Clonar el elemento para no afectar la interfaz visual del usuario
+    const clonedElement = originalElement.cloneNode(true);
+    
+    // 2. Modificar el clon para expandirlo completamente
+    clonedElement.style.width = '800px'; // Forzar un ancho para lectura cómoda
+    clonedElement.style.position = 'absolute';
+    clonedElement.style.left = '-9999px'; // Ocultarlo de la pantalla
+    clonedElement.style.height = 'auto'; // Permitir que crezca lo necesario
+    clonedElement.className = "bg-white p-8 flex flex-col"; // Quitar redondeos, bordes y overflow hidden
+    
+    // 3. Quitar el truncado del título
+    const titleElement = clonedElement.querySelector('h3');
+    if (titleElement) {
+      titleElement.className = "text-[#0F172A] text-[20px] font-bold mb-4"; 
+      titleElement.innerText = item.nombreImagen; // Asegurar texto completo
+    }
+
+    // 4. Mostrar TODAS las etiquetas
+    const tagsContainer = clonedElement.querySelectorAll('.flex.flex-col.gap-3')[0];
+    if (tagsContainer && item.etiquetas) {
+      tagsContainer.innerHTML = ''; // Limpiar las 5 originales
+      item.etiquetas.forEach(label => {
+        const currentLang = i18n.language || 'es';
+        const displayName = label.nombres ? label.nombres[currentLang] : label.nombre;
+        const color = label.confianza > 95 ? '#10b981' : label.confianza > 85 ? '#3B82F6' : '#f59e0b';
+        
+        tagsContainer.innerHTML += `
+          <div class="flex flex-col gap-1.5 mb-2">
+            <div class="flex justify-between items-center text-[14px] font-bold text-[#0F172A]">
+              <span class="capitalize">${displayName}</span>
+              <span class="text-gray-500">${label.confianza.toFixed(1)}%</span>
+            </div>
+            <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+              <div class="h-full rounded-full" style="width: ${label.confianza}%; background-color: ${color}"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // 5. Mostrar TODO el texto detectado
+    const textContainerWrapper = clonedElement.querySelector('.mt-5.pt-4.border-t');
+    if (textContainerWrapper && item.textoDetectado && item.textoDetectado.length > 0) {
+      const textContainer = textContainerWrapper.querySelector('.flex.flex-wrap.gap-2');
+      if (textContainer) {
+        textContainer.innerHTML = ''; // Limpiar los 3 originales
+        item.textoDetectado.forEach(txt => {
+          textContainer.innerHTML += `<span class="bg-blue-50 text-blue-700 border border-blue-100 text-[13px] px-3 py-1.5 rounded-md font-medium mb-1">"${txt}"</span>`;
+        });
+      }
+    }
+
+    // Eliminar el botón de exportar del PDF clonado
+    const btn = clonedElement.querySelector('button');
+    if (btn) btn.remove();
+
+    document.body.appendChild(clonedElement);
 
     try {
-      const canvas = await html2canvas(element, { 
+      const canvas = await html2canvas(clonedElement, { 
         scale: 2, 
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        logging: false
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -359,10 +418,16 @@ function Dashboard() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`AdVision_Report_${item.nombreImagen}.pdf`);
+      // Si la imagen es más larga que un A4, se cortará. Ajustamos para que quepa en una página.
+      const finalHeight = pdfHeight > pdf.internal.pageSize.getHeight() ? pdf.internal.pageSize.getHeight() : pdfHeight;
+      const finalWidth = pdfHeight > pdf.internal.pageSize.getHeight() ? (canvas.width * finalHeight) / canvas.height : pdfWidth;
+
+      pdf.addImage(imgData, 'PNG', (pdfWidth - finalWidth) / 2, 0, finalWidth, finalHeight);
+      pdf.save(`AdVision_Report_${item.nombreImagen.replace(/\.[^/.]+$/, "")}.pdf`);
     } catch (error) {
       console.error("Error generando PDF:", error);
+    } finally {
+      document.body.removeChild(clonedElement);
     }
   };
 
@@ -683,9 +748,14 @@ function Dashboard() {
                 <button 
                   onClick={() => exportToPDF(item, `report-card-${item.id}`)}
                   className="mt-6 w-full bg-slate-50 text-[#0F172A] border border-slate-200 text-[13px] font-bold py-2.5 rounded-[8px] hover:bg-slate-100 hover:border-slate-300 transition-colors flex items-center justify-center gap-2"
-                  data-html2canvas-ignore="true"
                 >
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
                   {t('dashboard.export_pdf')}
                 </button>
               </div>
