@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
@@ -9,7 +9,7 @@ import { DetectLabelsCommand, DetectTextCommand } from "@aws-sdk/client-rekognit
 
 import { db, auth } from '../firebase-config'; 
 import { signOut } from "firebase/auth"; 
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, where } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, where, limit, startAfter, getCountFromServer } from "firebase/firestore";
 import { useAuth } from '../context/AuthContext';
 
 import logo from '../assets/logo.svg';
@@ -30,16 +30,27 @@ function Dashboard() {
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const fileInputRef = useRef(null);
   
+  const [lastVisible, setLastVisible] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const observer = useRef();
+
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!currentUser) return;
     try {
+      const countQuery = query(collection(db, "analisis"), where("userId", "==", currentUser.uid));
+      const snapshot = await getCountFromServer(countQuery);
+      setTotalRecords(snapshot.data().count);
+
       const q = query(
         collection(db, "analisis"),
         where("userId", "==", currentUser.uid),
-        orderBy("fechaCreacion", "desc")
+        orderBy("fechaCreacion", "desc"),
+        limit(15)
       );
       const querySnapshot = await getDocs(q);
       const docs = querySnapshot.docs.map(doc => ({
@@ -47,14 +58,59 @@ function Dashboard() {
         ...doc.data()
       }));
       setHistory(docs);
+      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1] || null);
+      setHasMore(querySnapshot.docs.length === 15);
     } catch (error) {
       console.error("Error al cargar historial:", error);
     }
-  };
+  }, [currentUser]);
+
+  const fetchMoreHistory = useCallback(async () => {
+    if (!currentUser || !lastVisible || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const q = query(
+        collection(db, "analisis"),
+        where("userId", "==", currentUser.uid),
+        orderBy("fechaCreacion", "desc"),
+        startAfter(lastVisible),
+        limit(15)
+      );
+      const querySnapshot = await getDocs(q);
+      const newDocs = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      setHistory(prev => {
+        const existingIds = new Set(prev.map(item => item.id));
+        const uniqueNewDocs = newDocs.filter(doc => !existingIds.has(doc.id));
+        return [...prev, ...uniqueNewDocs];
+      });
+      
+      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1] || null);
+      setHasMore(querySnapshot.docs.length === 15);
+    } catch (error) {
+      console.error("Error al cargar más historial:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [currentUser, lastVisible, hasMore]);
+
+  const lastImageElementRef = useCallback(node => {
+    if (loadingMore) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        fetchMoreHistory();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loadingMore, hasMore, fetchMoreHistory]);
 
   useEffect(() => {
     fetchHistory();
-  }, [currentUser]);
+  }, [fetchHistory]);
 
   const handleLogout = async () => {
     try {
@@ -405,7 +461,7 @@ function Dashboard() {
                 {t('dashboard.history_title')}
               </h2>
               <span className="bg-[#6D28D9] text-white text-[16px] font-bold px-4 py-1.5 rounded-full shadow-sm">
-                {filteredHistory.length} {t('dashboard.records')}
+                {(searchTerm === '' && dateFilter === 'all' && confidenceFilter === 0) ? totalRecords : filteredHistory.length} {t('dashboard.records')}
               </span>
             </div>
 
@@ -526,14 +582,19 @@ function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {filteredHistory.map((item) => (
-            <article key={item.id} className="bg-white rounded-[16px] shadow-sm overflow-hidden flex flex-col border border-gray-100 transition-transform hover:-translate-y-2 hover:shadow-xl">
+          {filteredHistory.map((item, index) => (
+            <article 
+              key={item.id} 
+              ref={filteredHistory.length === index + 1 ? lastImageElementRef : null}
+              className="bg-white rounded-[16px] shadow-sm overflow-hidden flex flex-col border border-gray-100 transition-transform hover:-translate-y-2 hover:shadow-xl"
+            >
               
               <div className="w-full h-[280px] bg-gray-100 overflow-hidden relative">
                 <img
                   src={`https://${BUCKET_NAME}.s3.eu-south-2.amazonaws.com/originals/${item.nombreImagen}`}
                   alt={item.nombreImagen}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
               
@@ -587,6 +648,15 @@ function Dashboard() {
             </article>
           ))}
         </div>
+
+        {loadingMore && (
+          <div className="flex justify-center mt-8 w-full pb-8">
+            <svg className="animate-spin h-8 w-8 text-[#3B82F6]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        )}
 
       </div>
     </div>
