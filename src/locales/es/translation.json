@@ -21,7 +21,18 @@
     "export": "Exportar",
     "export_csv": "Exportar CSV",
     "export_json": "Exportar JSON",
-    "export_excel": "Exportar Excel"
+    "export_excel": "Exportar Excel",
+    "filter_date_all": "Cualquier fecha",
+    "filter_date_today": "Hoy",
+    "filter_date_week": "Última semana",
+    "filter_date_month": "Último mes",
+    "filter_conf_all": "Cualquier confianza",
+    "filter_conf_95": "95% o menos",
+    "filter_conf_90": "90% o menos",
+    "filters": "Filtros",
+    "active_filters": "Filtros activos:",
+    "clear_filters": "Limpiar filtros"
+
   },
   "profile": {
     "back_dashboard": "Volver al Dashboard",

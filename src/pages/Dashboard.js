@@ -15,11 +15,15 @@ import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.svg';
 
 function Dashboard() {
-  const { t, i18n } = useTranslation(); // Extracción de i18n añadida
+  const { t, i18n } = useTranslation();
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [history, setHistory] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const [dateFilter, setDateFilter] = useState('all');
+  const [confidenceFilter, setConfidenceFilter] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   
   const [isDragging, setIsDragging] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -133,21 +137,20 @@ function Dashboard() {
 
       const textLines = textResponse.TextDetections.filter(item => item.Type === 'LINE');
 
-      const targetLangs = ['es', 'fr', 'it', 'de']; // El inglés viene nativo de AWS
+      const targetLangs = ['es', 'fr', 'it', 'de'];
 
-      // Construcción del diccionario multilingüe concurrente
       const multilangLabels = await Promise.all(
         labelsResponse.Labels.map(async (label) => {
-          const nombresDict = { en: label.Name }; // Asignamos el original en inglés
+          const nombresDict = { en: label.Name };
           
           await Promise.all(targetLangs.map(async (lang) => {
              nombresDict[lang] = await translateLabel(label.Name, lang);
           }));
 
           return {
-            nombres: nombresDict, // Nueva arquitectura: Diccionario completo guardado en Firebase
+            nombres: nombresDict,
             confianza: label.Confidence,
-            nombre: nombresDict['es'] // Fallback de seguridad para compatibilidad con código antiguo
+            nombre: nombresDict['es'] 
           };
         })
       );
@@ -188,21 +191,41 @@ function Dashboard() {
     }
   };
 
+  const uniqueTags = Array.from(new Set(
+    history.flatMap(item => item.etiquetas?.map(e => e.nombres ? e.nombres[i18n.language || 'es'] : e.nombre) || [])
+  )).filter(Boolean);
+
   const filteredHistory = history.filter(item => {
-    if (!searchTerm) return true;
-    
     const term = searchTerm.toLowerCase();
-    const currentLang = i18n.language || 'es'; // Detección del idioma activo
+    const currentLang = i18n.language || 'es';
     
     const matchName = item.nombreImagen?.toLowerCase().includes(term);
     const matchLabel = item.etiquetas?.some(label => {
-      // Evalúa la búsqueda utilizando únicamente la palabra en el idioma activo
       const labelText = label.nombres ? label.nombres[currentLang] : label.nombre;
       return labelText?.toLowerCase().includes(term);
     });
     const matchText = item.textoDetectado?.some(txt => txt.toLowerCase().includes(term));
-    
-    return matchName || matchLabel || matchText;
+    const passesSearch = term === '' || matchName || matchLabel || matchText;
+
+    const passesConfidence = confidenceFilter === 0 || (item.etiquetas && item.etiquetas.some(label => {
+      if (confidenceFilter === 95) return label.confianza <= 95;
+      if (confidenceFilter === 90) return label.confianza <= 90;
+      return true;
+    }));
+
+    let passesDate = true;
+    if (dateFilter !== 'all' && item.fechaCreacion) {
+      const itemDate = item.fechaCreacion.toDate();
+      const now = new Date();
+      const diffTime = Math.abs(now - itemDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (dateFilter === 'today') passesDate = diffDays <= 1;
+      if (dateFilter === 'week') passesDate = diffDays <= 7;
+      if (dateFilter === 'month') passesDate = diffDays <= 30;
+    }
+
+    return passesSearch && passesConfidence && passesDate;
   });
 
   const exportToCSV = () => {
@@ -373,16 +396,43 @@ function Dashboard() {
       </div>
 
       <div className="max-w-[1400px] mx-auto px-6 mt-16">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            <h2 className="text-[#0F172A] text-[34px] md:text-[38px] font-extrabold tracking-tight">
-              {t('dashboard.history_title')}
-            </h2>
-            <span className="bg-[#6D28D9] text-white text-[16px] font-bold px-4 py-1.5 rounded-full shadow-sm">
-              {filteredHistory.length} {t('dashboard.records')}
-            </span>
-            
-            <div className="relative ml-2">
+        
+        <div className="flex flex-col gap-5 mb-10">
+          
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="flex items-center gap-4 flex-wrap">
+              <h2 className="text-[#0F172A] text-[34px] md:text-[38px] font-extrabold tracking-tight">
+                {t('dashboard.history_title')}
+              </h2>
+              <span className="bg-[#6D28D9] text-white text-[16px] font-bold px-4 py-1.5 rounded-full shadow-sm">
+                {filteredHistory.length} {t('dashboard.records')}
+              </span>
+            </div>
+
+            <div className="relative w-full md:max-w-[500px] xl:max-w-[600px] ml-auto">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                list="tags-options"
+                placeholder={t('dashboard.search_placeholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-white text-[#475569] text-[15px] font-medium border border-transparent pl-12 pr-4 py-3.5 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] shadow-sm placeholder:text-gray-400 [&::-webkit-calendar-picker-indicator]:!hidden [&::-webkit-list-button]:!hidden"
+              />
+              <datalist id="tags-options">
+                {uniqueTags.map((tag, idx) => (
+                  <option key={idx} value={tag} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
               <button 
                 onClick={() => setExportDropdownOpen(!exportDropdownOpen)} 
                 className="bg-[#0F172A] text-white border border-slate-700 px-5 py-2.5 rounded-[10px] font-bold text-[14px] hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2"
@@ -418,22 +468,61 @@ function Dashboard() {
                 </div>
               )}
             </div>
+
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] font-bold text-[14px] border transition-colors shadow-sm whitespace-nowrap ${showFilters ? 'bg-[#3B82F6] text-white border-[#3B82F6]' : 'bg-white text-[#475569] border-transparent hover:border-slate-300'}`}
+            >
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+              {t('dashboard.filters')}
+            </button>
           </div>
-          
-          <div className="relative w-full md:w-[450px] lg:w-[500px]">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg className="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+
+          {showFilters && (
+            <div className="bg-white p-5 rounded-[12px] shadow-sm border border-slate-100 flex flex-wrap gap-4 animate-in fade-in slide-in-from-top-2">
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="bg-slate-50 text-[#475569] text-[14px] font-semibold border border-slate-200 px-4 py-3 rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] appearance-none cursor-pointer min-w-[160px]"
+              >
+                <option value="all">{t('dashboard.filter_date_all')}</option>
+                <option value="today">{t('dashboard.filter_date_today')}</option>
+                <option value="week">{t('dashboard.filter_date_week')}</option>
+                <option value="month">{t('dashboard.filter_date_month')}</option>
+              </select>
+
+              <select
+                value={confidenceFilter}
+                onChange={(e) => setConfidenceFilter(Number(e.target.value))}
+                className="bg-slate-50 text-[#475569] text-[14px] font-semibold border border-slate-200 px-4 py-3 rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] appearance-none cursor-pointer min-w-[180px]"
+              >
+                <option value={0}>{t('dashboard.filter_conf_all')}</option>
+                <option value={95}>{t('dashboard.filter_conf_95')}</option>
+                <option value={90}>{t('dashboard.filter_conf_90')}</option>
+              </select>
             </div>
-            <input
-              type="text"
-              placeholder={t('dashboard.search_placeholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white text-[#475569] text-[16px] font-medium border border-transparent pl-12 pr-4 py-4 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] shadow-sm placeholder:text-gray-400"
-            />
-          </div>
+          )}
+
+          {(dateFilter !== 'all' || confidenceFilter !== 0) && (
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              <span className="text-[13px] font-bold text-[#64748B] mr-1">{t('dashboard.active_filters')}</span>
+              {dateFilter !== 'all' && (
+                <span onClick={() => setDateFilter('all')} className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full text-[13px] font-semibold flex items-center gap-1.5 cursor-pointer hover:bg-blue-100 transition-colors">
+                  {t(`dashboard.filter_date_${dateFilter}`)}
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </span>
+              )}
+              {confidenceFilter !== 0 && (
+                <span onClick={() => setConfidenceFilter(0)} className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full text-[13px] font-semibold flex items-center gap-1.5 cursor-pointer hover:bg-blue-100 transition-colors">
+                  {t(`dashboard.filter_conf_${confidenceFilter}`)}
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </span>
+              )}
+              <button onClick={() => { setDateFilter('all'); setConfidenceFilter(0); }} className="text-[12px] font-bold text-[#94A3B8] hover:text-[#0F172A] ml-2 underline transition-colors">
+                {t('dashboard.clear_filters')}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -460,7 +549,6 @@ function Dashboard() {
                   <p className="text-[12px] font-bold text-[#64748B] uppercase tracking-wider mb-3">{t('dashboard.tags')}</p>
                   <div className="flex flex-col gap-3">
                     {item.etiquetas?.slice(0, 5).map((label, i) => {
-                      // Interpretación dinámica del idioma para el renderizado
                       const currentLang = i18n.language || 'es';
                       const displayName = label.nombres ? label.nombres[currentLang] : label.nombre;
 
