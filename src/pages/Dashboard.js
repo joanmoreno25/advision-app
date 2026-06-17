@@ -161,13 +161,14 @@ function Dashboard() {
     }
   };
 
-  const saveToFirestore = async (imageName, translatedLabels, detectedText) => {
+  const saveToFirestore = async (imageName, translatedLabels, detectedText, dominantColors) => {
     try {
       const analysisData = {
         userId: currentUser.uid,
         nombreImagen: imageName,
         etiquetas: translatedLabels,
         textoDetectado: detectedText.map(t => t.DetectedText),
+        coloresDominantes: dominantColors || [], // Guardamos la paleta aquí
         fechaCreacion: serverTimestamp()
       };
       await addDoc(collection(db, "analisis"), analysisData);
@@ -180,10 +181,13 @@ function Dashboard() {
   const analyzeImage = async (imageName, fileData) => {
     try {
       const imageParams = { Image: { Bytes: fileData } };
+      
       const labelsCommand = new DetectLabelsCommand({
         ...imageParams,
         MaxLabels: 5,
         MinConfidence: 75,
+        // Al añadir IMAGE_PROPERTIES, AWS nos devolverá los colores dominantes
+        Features: ["GENERAL_LABELS", "IMAGE_PROPERTIES"] 
       });
       const textCommand = new DetectTextCommand(imageParams);
 
@@ -209,7 +213,15 @@ function Dashboard() {
         })
       );
 
-      await saveToFirestore(imageName, multilangLabels, textLines);
+      // Extraer los 3 colores principales de la respuesta de AWS
+      let dominantColors = [];
+      if (labelsResponse.ImageProperties && labelsResponse.ImageProperties.DominantColors) {
+        dominantColors = labelsResponse.ImageProperties.DominantColors
+          .slice(0, 3) // Cogemos los 3 con mayor porcentaje
+          .map(color => color.HexCode); // Guardamos el código HEX (ej. #FFFFFF)
+      }
+
+      await saveToFirestore(imageName, multilangLabels, textLines, dominantColors);
     } catch (error) {
       console.error("ERROR DETALLADO AWS:", error);
     }
@@ -732,7 +744,6 @@ function Dashboard() {
                   crossOrigin="anonymous"
                   onError={(e) => {
                     e.target.onerror = null; 
-                    // Cambiamos a usar BUCKET_NAME para asegurar la ruta correcta
                     e.target.src = `https://${BUCKET_NAME}.s3.eu-south-2.amazonaws.com/originals/${item.nombreImagen}`;
                   }}
                 />
@@ -784,6 +795,24 @@ function Dashboard() {
                     </div>
                   </div>
                 )}
+
+                {/* --- NUEVO BLOQUE: PALETA DE COLORES DOMINANTES --- */}
+                {item.coloresDominantes && item.coloresDominantes.length > 0 && (
+                  <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-700 flex justify-between items-center">
+                    <p className="text-[12px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider">{t('dashboard.dominant_colors')}</p>
+                    <div className="flex gap-2">
+                      {item.coloresDominantes.map((hex, idx) => (
+                        <div
+                          key={idx}
+                          className="w-6 h-6 rounded-full border border-gray-200 dark:border-slate-600 shadow-sm transition-transform hover:scale-110 cursor-help"
+                          style={{ backgroundColor: hex }}
+                          title={`Color HEX: ${hex}`}
+                        ></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* --------------------------------------------------- */}
 
                 <button 
                   onClick={() => exportToPDF(item, `report-card-${item.id}`)}

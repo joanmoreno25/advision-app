@@ -44,8 +44,8 @@
     "high_conf": "Alta (>90%)",
     "med_conf": "Media (80-90%)",
     "low_conf": "Baja (<80%)",
-    "export_pdf": "Descargar Reporte PDF"
-
+    "export_pdf": "Descargar Reporte PDF",
+    "dominant_colors": "Paleta Dominante"
   },
   "profile": {
     "back_dashboard": "Volver al Dashboard",
