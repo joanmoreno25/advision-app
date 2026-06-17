@@ -44,7 +44,8 @@
     "high_conf": "Hoch (>90%)",
     "med_conf": "Mittel (80-90%)",
     "low_conf": "Niedrig (<80%)",
-    "export_pdf": "PDF-Bericht Herunterladen"
+    "export_pdf": "PDF-Bericht Herunterladen",
+    "dominant_colors": "Dominante Palette"
   },
   "profile": {
     "back_dashboard": "Zurück zum Dashboard",
