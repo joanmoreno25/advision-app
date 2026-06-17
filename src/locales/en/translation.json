@@ -45,7 +45,13 @@
     "med_conf": "Medium (80-90%)",
     "low_conf": "Low (<80%)",
     "export_pdf": "Download PDF Report",
-    "dominant_colors": "Dominant Palette"
+    "dominant_colors": "Dominant Palette",
+    "content_warning": "Content Warning",
+    "sensitive_content": "Sensitive Content",
+    "sensitive_desc": "This image has been hidden by moderation policies.",
+    "see_photo": "See photo",
+    "see_reasons": "See reasons",
+    "hide_reasons": "Hide reasons"
   },
   "profile": {
     "back_dashboard": "Back to Dashboard",

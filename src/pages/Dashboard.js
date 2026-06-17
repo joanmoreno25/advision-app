@@ -7,7 +7,7 @@ import html2canvas from "html2canvas";
 
 import { s3Client, rekognitionClient, BUCKET_NAME } from '../aws-config';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { DetectLabelsCommand, DetectTextCommand } from "@aws-sdk/client-rekognition";
+import { DetectLabelsCommand, DetectTextCommand, DetectModerationLabelsCommand } from "@aws-sdk/client-rekognition";
 
 import { db, auth } from '../firebase-config'; 
 import { signOut } from "firebase/auth"; 
@@ -37,6 +37,8 @@ function Dashboard() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [revealedImages, setRevealedImages] = useState({});
+  const [revealedReasons, setRevealedReasons] = useState({});
   const observer = useRef();
 
   const { currentUser } = useAuth();
@@ -161,14 +163,15 @@ function Dashboard() {
     }
   };
 
-  const saveToFirestore = async (imageName, translatedLabels, detectedText, dominantColors) => {
+  const saveToFirestore = async (imageName, translatedLabels, detectedText, dominantColors, moderationLabels) => {
     try {
       const analysisData = {
         userId: currentUser.uid,
         nombreImagen: imageName,
         etiquetas: translatedLabels,
         textoDetectado: detectedText.map(t => t.DetectedText),
-        coloresDominantes: dominantColors || [], // Guardamos la paleta aquí
+        coloresDominantes: dominantColors || [],
+        moderacion: moderationLabels || [],
         fechaCreacion: serverTimestamp()
       };
       await addDoc(collection(db, "analisis"), analysisData);
@@ -186,14 +189,18 @@ function Dashboard() {
         ...imageParams,
         MaxLabels: 5,
         MinConfidence: 75,
-        // Al añadir IMAGE_PROPERTIES, AWS nos devolverá los colores dominantes
         Features: ["GENERAL_LABELS", "IMAGE_PROPERTIES"] 
       });
       const textCommand = new DetectTextCommand(imageParams);
+      const moderationCommand = new DetectModerationLabelsCommand({
+        ...imageParams,
+        MinConfidence: 60
+      });
 
-      const [labelsResponse, textResponse] = await Promise.all([
+      const [labelsResponse, textResponse, moderationResponse] = await Promise.all([
         rekognitionClient.send(labelsCommand),
-        rekognitionClient.send(textCommand)
+        rekognitionClient.send(textCommand),
+        rekognitionClient.send(moderationCommand)
       ]);
 
       const textLines = textResponse.TextDetections.filter(item => item.Type === 'LINE');
@@ -213,15 +220,28 @@ function Dashboard() {
         })
       );
 
-      // Extraer los 3 colores principales de la respuesta de AWS
       let dominantColors = [];
       if (labelsResponse.ImageProperties && labelsResponse.ImageProperties.DominantColors) {
         dominantColors = labelsResponse.ImageProperties.DominantColors
-          .slice(0, 3) // Cogemos los 3 con mayor porcentaje
-          .map(color => color.HexCode); // Guardamos el código HEX (ej. #FFFFFF)
+          .slice(0, 3) 
+          .map(color => color.HexCode); 
       }
 
-      await saveToFirestore(imageName, multilangLabels, textLines, dominantColors);
+      const multilangModeration = await Promise.all(
+        moderationResponse.ModerationLabels.map(async (mod) => {
+          const nombresDict = { en: mod.Name };
+          await Promise.all(targetLangs.map(async (lang) => {
+             nombresDict[lang] = await translateLabel(mod.Name, lang);
+          }));
+          return {
+            nombres: nombresDict,
+            confianza: mod.Confidence,
+            nombre: nombresDict['es'] 
+          };
+        })
+      );
+
+      await saveToFirestore(imageName, multilangLabels, textLines, dominantColors, multilangModeration);
     } catch (error) {
       console.error("ERROR DETALLADO AWS:", error);
     }
@@ -739,7 +759,7 @@ function Dashboard() {
                 <img
                   src={`https://${BUCKET_NAME}.s3.eu-south-2.amazonaws.com/thumbnails/${item.nombreImagen}`}
                   alt={item.nombreImagen}
-                  className="w-full h-full object-cover transition-opacity duration-300"
+                  className={`w-full h-full object-cover transition-all duration-500 ${item.moderacion?.length > 0 && !revealedImages[item.id] ? 'blur-2xl scale-110' : ''}`}
                   loading="lazy"
                   crossOrigin="anonymous"
                   onError={(e) => {
@@ -747,6 +767,29 @@ function Dashboard() {
                     e.target.src = `https://${BUCKET_NAME}.s3.eu-south-2.amazonaws.com/originals/${item.nombreImagen}`;
                   }}
                 />
+                
+                {item.moderacion?.length > 0 && !revealedImages[item.id] && (
+                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-6 text-center z-10">
+                    <svg className="w-10 h-10 text-white/90 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                    <h4 className="text-white font-bold text-[18px] mb-1">{t('dashboard.sensitive_content')}</h4>
+                    <p className="text-gray-300 text-[13px] mb-5">{t('dashboard.sensitive_desc')}</p>
+                    
+                    <div className="flex flex-col gap-3 w-full max-w-[200px]">
+                      <button 
+                        onClick={() => setRevealedImages(prev => ({ ...prev, [item.id]: true }))} 
+                        className="bg-white/20 hover:bg-white/30 text-white border border-white/40 px-4 py-2.5 rounded-lg text-[13px] font-bold transition-colors"
+                      >
+                        {t('dashboard.see_photo')}
+                      </button>
+                      <button 
+                        onClick={() => setRevealedReasons(prev => ({ ...prev, [item.id]: !prev[item.id] }))} 
+                        className="text-white/70 hover:text-white underline text-[13px] font-semibold transition-colors"
+                      >
+                        {revealedReasons[item.id] ? t('dashboard.hide_reasons') : t('dashboard.see_reasons')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="p-6 flex-1 flex flex-col">
@@ -756,6 +799,28 @@ function Dashboard() {
                     {item.nombreImagen}
                   </h3>
                 </div>
+
+                {/* --- BLOQUE DE MODERACIÓN ACTUALIZADO CON TRADUCCIÓN --- */}
+                {item.moderacion?.length > 0 && revealedReasons[item.id] && (
+                  <div className="mb-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 rounded-lg animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                      <p className="text-[13px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">{t('dashboard.content_warning')}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.moderacion.map((mod, idx) => {
+                        const currentLang = i18n.language || 'es';
+                        const displayName = mod.nombres ? mod.nombres[currentLang] : mod.nombre;
+                        return (
+                          <span key={idx} className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-[11px] px-2 py-1 rounded-md font-bold">
+                            <span className="capitalize">{displayName}</span> ({(mod.confianza).toFixed(1)}%)
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* ---------------------------------------- */}
                 
                 <div className="flex flex-col flex-1">
                   <p className="text-[12px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider mb-3">{t('dashboard.tags')}</p>
