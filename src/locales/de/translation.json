@@ -45,7 +45,13 @@
     "med_conf": "Mittel (80-90%)",
     "low_conf": "Niedrig (<80%)",
     "export_pdf": "PDF-Bericht Herunterladen",
-    "dominant_colors": "Dominante Palette"
+    "dominant_colors": "Dominante Palette",
+    "content_warning": "Inhaltswarnung",
+    "sensitive_content": "Sensibler Inhalt",
+    "sensitive_desc": "Dieses Bild wurde durch Moderationsrichtlinien ausgeblendet.",
+    "see_photo": "Foto ansehen",
+    "see_reasons": "Gründe ansehen",
+    "hide_reasons": "Gründe verbergen"
   },
   "profile": {
     "back_dashboard": "Zurück zum Dashboard",

@@ -45,7 +45,13 @@
     "med_conf": "Moyenne (80-90%)",
     "low_conf": "Faible (<80%)",
     "export_pdf": "Télécharger le Rapport PDF",
-    "dominant_colors": "Palette Dominante"
+    "dominant_colors": "Palette Dominante",
+    "content_warning": "Avertissement de Contenu",
+    "sensitive_content": "Contenu Sensible",
+    "sensitive_desc": "Cette image a été masquée par les politiques de modération.",
+    "see_photo": "Voir la photo",
+    "see_reasons": "Voir les raisons",
+    "hide_reasons": "Masquer les raisons"
 
   },
   "profile": {

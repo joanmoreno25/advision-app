@@ -45,7 +45,13 @@
     "med_conf": "Media (80-90%)",
     "low_conf": "Bassa (<80%)",
     "export_pdf": "Scarica Report PDF",
-    "dominant_colors": "Tavolozza Dominante"
+    "dominant_colors": "Tavolozza Dominante",
+    "content_warning": "Avviso sui Contenuti",
+    "sensitive_content": "Contenuto Sensibile",
+    "sensitive_desc": "Questa immagine è stata nascosta dalle politiche di moderazione.",
+    "see_photo": "Vedi foto",
+    "see_reasons": "Vedi motivi",
+    "hide_reasons": "Nascondi motivi"
   },
   "profile": {
     "back_dashboard": "Torna alla Dashboard",

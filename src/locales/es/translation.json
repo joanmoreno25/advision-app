@@ -45,7 +45,13 @@
     "med_conf": "Media (80-90%)",
     "low_conf": "Baja (<80%)",
     "export_pdf": "Descargar Reporte PDF",
-    "dominant_colors": "Paleta Dominante"
+    "dominant_colors": "Paleta Dominante",
+    "content_warning": "Advertencia de Contenido",
+    "sensitive_content": "Contenido Sensible",
+    "sensitive_desc": "Esta imagen ha sido ocultada por las políticas de moderación.",
+    "see_photo": "Ver foto",
+    "see_reasons": "Ver motivos",
+    "hide_reasons": "Ocultar motivos"
   },
   "profile": {
     "back_dashboard": "Volver al Dashboard",
