@@ -215,12 +215,45 @@ function Dashboard() {
     }
   };
 
+  const createThumbnail = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 400; // Ancho optimizado para la galería
+          let width = img.width;
+          let height = img.height;
+
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            resolve(blob);
+          }, file.type);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const uploadToS3 = async () => {
     if (files.length === 0) return alert(t('dashboard.alert_select_file'));
     setUploading(true);
     try {
       const uploadPromises = files.map(async (file) => {
         const safeFileName = file.name.replace(/\s+/g, '_');
+        
+        // 1. Preparar y subir la imagen original
         const arrayBuffer = await file.arrayBuffer();
         const fileData = new Uint8Array(arrayBuffer);
        
@@ -231,12 +264,30 @@ function Dashboard() {
           ContentType: file.type
         }));
        
+        // 2. Generar, preparar y subir la miniatura optimizada
+        try {
+          const thumbnailBlob = await createThumbnail(file);
+          const thumbArrayBuffer = await thumbnailBlob.arrayBuffer();
+          const thumbData = new Uint8Array(thumbArrayBuffer);
+
+          await s3Client.send(new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: `thumbnails/${safeFileName}`,
+            Body: thumbData,
+            ContentType: file.type
+          }));
+        } catch (thumbError) {
+          console.error("Error al generar o subir la miniatura:", thumbError);
+        }
+
+        // 3. Analizar la imagen original con Rekognition
         await analyzeImage(safeFileName, fileData);
       });
+      
       await Promise.all(uploadPromises);
       setFiles([]); 
     } catch (error) {
-      console.error("Fallo general:", error);
+      console.error("Fallo general en el proceso de subida:", error);
     } finally {
       setUploading(false);
     }
@@ -674,11 +725,16 @@ function Dashboard() {
               
               <div className="w-full h-[280px] bg-gray-100 dark:bg-slate-800 overflow-hidden relative">
                 <img
-                  src={`https://${BUCKET_NAME}.s3.eu-south-2.amazonaws.com/originals/${item.nombreImagen}`}
+                  src={`https://${BUCKET_NAME}.s3.eu-south-2.amazonaws.com/thumbnails/${item.nombreImagen}`}
                   alt={item.nombreImagen}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-opacity duration-300"
                   loading="lazy"
                   crossOrigin="anonymous"
+                  onError={(e) => {
+                    e.target.onerror = null; 
+                    // Cambiamos a usar BUCKET_NAME para asegurar la ruta correcta
+                    e.target.src = `https://${BUCKET_NAME}.s3.eu-south-2.amazonaws.com/originals/${item.nombreImagen}`;
+                  }}
                 />
               </div>
               
