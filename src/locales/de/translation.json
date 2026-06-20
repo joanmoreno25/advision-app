@@ -51,7 +51,11 @@
     "sensitive_desc": "Dieses Bild wurde durch Moderationsrichtlinien ausgeblendet.",
     "see_photo": "Foto ansehen",
     "see_reasons": "Gründe ansehen",
-    "hide_reasons": "Gründe verbergen"
+    "hide_reasons": "Gründe verbergen",
+    "sentiment_POSITIVE": "Positiv",
+    "sentiment_NEGATIVE": "Negativ",
+    "sentiment_NEUTRAL": "Neutral",
+    "sentiment_MIXED": "Gemischt"
   },
   "profile": {
     "back_dashboard": "Zurück zum Dashboard",

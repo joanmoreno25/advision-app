@@ -8,6 +8,8 @@ import html2canvas from "html2canvas";
 import { s3Client, rekognitionClient, BUCKET_NAME } from '../aws-config';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { DetectLabelsCommand, DetectTextCommand, DetectModerationLabelsCommand } from "@aws-sdk/client-rekognition";
+import { comprehendClient } from '../aws-config';
+import { DetectSentimentCommand } from "@aws-sdk/client-comprehend";
 
 import { db, auth } from '../firebase-config'; 
 import { signOut } from "firebase/auth"; 
@@ -163,7 +165,7 @@ function Dashboard() {
     }
   };
 
-  const saveToFirestore = async (imageName, translatedLabels, detectedText, dominantColors, moderationLabels) => {
+  const saveToFirestore = async (imageName, translatedLabels, detectedText, dominantColors, moderationLabels, sentiment) => {
     try {
       const analysisData = {
         userId: currentUser.uid,
@@ -172,6 +174,7 @@ function Dashboard() {
         textoDetectado: detectedText.map(t => t.DetectedText),
         coloresDominantes: dominantColors || [],
         moderacion: moderationLabels || [],
+        sentimiento: sentiment || null, // Nuevo campo
         fechaCreacion: serverTimestamp()
       };
       await addDoc(collection(db, "analisis"), analysisData);
@@ -241,8 +244,24 @@ function Dashboard() {
         })
       );
 
-      await saveToFirestore(imageName, multilangLabels, textLines, dominantColors, multilangModeration);
-    } catch (error) {
+      // --- ANÁLISIS DE SENTIMIENTO (NLP) ---
+      const detectedString = textLines.map(t => t.DetectedText).join(" ");
+      let sentimentResult = null;
+      
+      if (detectedString.trim().length > 0) {
+        try {
+          const sentimentCommand = new DetectSentimentCommand({
+            LanguageCode: "es",
+            Text: detectedString.substring(0, 4900)
+          });
+          const sentimentResponse = await comprehendClient.send(sentimentCommand);
+          sentimentResult = sentimentResponse.Sentiment;
+        } catch (e) {
+          console.error("Error en AWS Comprehend NLP:", e);
+        }
+      }
+
+    await saveToFirestore(imageName, multilangLabels, textLines, dominantColors, multilangModeration, sentimentResult);    } catch (error) {
       console.error("ERROR DETALLADO AWS:", error);
     }
   };
@@ -852,7 +871,22 @@ function Dashboard() {
 
                 {item.textoDetectado && item.textoDetectado.length > 0 && (
                   <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-700">
-                    <p className="text-[12px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider mb-2">{t('dashboard.detected_text')}</p>
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-[12px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider">{t('dashboard.detected_text')}</p>
+                      
+                      {/* Badge de Sentimiento */}
+                      {item.sentimiento && (
+                        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold shadow-sm ${
+                          item.sentimiento === 'POSITIVE' ? 'bg-green-100 text-green-700 border border-green-200' :
+                          item.sentimiento === 'NEGATIVE' ? 'bg-red-100 text-red-700 border border-red-200' :
+                          item.sentimiento === 'MIXED' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                          'bg-gray-100 text-gray-700 border border-gray-200'
+                        }`}>
+                          {t(`dashboard.sentiment_${item.sentimiento}`)}
+                        </span>
+                      )}
+                    </div>
+                    
                     <div className="flex flex-wrap gap-2">
                        {item.textoDetectado.slice(0, 3).map((txt, idx) => (
                           <span key={idx} className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800 text-[12px] px-2.5 py-1 rounded-md font-medium">"{txt}"</span>

@@ -51,7 +51,11 @@
     "sensitive_desc": "Esta imagen ha sido ocultada por las políticas de moderación.",
     "see_photo": "Ver foto",
     "see_reasons": "Ver motivos",
-    "hide_reasons": "Ocultar motivos"
+    "hide_reasons": "Ocultar motivos",
+    "sentiment_POSITIVE": "Positivo",
+    "sentiment_NEGATIVE": "Negativo",
+    "sentiment_NEUTRAL": "Neutral",
+    "sentiment_MIXED": "Mixto"
   },
   "profile": {
     "back_dashboard": "Volver al Dashboard",
