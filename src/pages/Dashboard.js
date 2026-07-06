@@ -538,18 +538,29 @@ function Dashboard() {
                   <p className="text-sm font-semibold text-gray-800 dark:text-white truncate">{currentUser?.displayName || t('dashboard.user')}</p>
                   <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{currentUser?.email}</p>
                 </div>
+                
                 <button 
                   onClick={() => { setDropdownOpen(false); navigate('/analytics'); }} 
                   className="w-full text-left px-4 py-2 text-sm text-[#3B82F6] hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors font-bold"
                 >
                   {t('dashboard.go_to_analytics')}
                 </button>
+
+                {/* Nuevo acceso a la Comparación A/B */}
+                <button 
+                  onClick={() => { setDropdownOpen(false); navigate('/compare'); }} 
+                  className="w-full text-left px-4 py-2 text-sm text-[#3B82F6] hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors font-bold"
+                >
+                  {t('dashboard.go_to_compare', 'Comparación A/B')}
+                </button>
+                
                 <button 
                   onClick={() => { setDropdownOpen(false); navigate('/profile'); }} 
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   {t('dashboard.edit_profile')}
                 </button>
+                
                 <button 
                   onClick={handleLogout} 
                   className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors font-medium"
