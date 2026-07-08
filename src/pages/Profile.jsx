@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser, signOut } from 'firebase/auth';
+import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase-config';
 import { useAuth } from '../context/AuthContext';
@@ -87,7 +87,6 @@ const Profile = () => {
       let newPhotoUrl = currentUser.photoURL;
 
       if (selectedPhoto) {
-        // 1. Validación estricta de seguridad (MIME Type)
         const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
         if (!validTypes.includes(selectedPhoto.type)) {
           alert("Por favor, selecciona una imagen válida (JPG, PNG, WEBP).");
@@ -95,8 +94,11 @@ const Profile = () => {
           return; 
         }
 
-        // 2. UUID ligado al usuario para evitar colisiones
-        const uniqueId = crypto.randomUUID().split('-')[0];
+        // CORRECCIÓN 1: Fallback para evitar el bloqueo del script en localhost sin https
+        const uniqueId = typeof crypto.randomUUID === 'function' 
+          ? crypto.randomUUID().split('-')[0] 
+          : Math.random().toString(36).substring(2, 8);
+          
         const safeFileName = `${currentUser.uid}_avatar_${uniqueId}_${selectedPhoto.name.replace(/\s+/g, '_')}`;
         
         const arrayBuffer = await selectedPhoto.arrayBuffer();
@@ -121,6 +123,11 @@ const Profile = () => {
         language,
         photoURL: newPhotoUrl
       }, { merge: true });
+
+      // CORRECCIÓN 2: Actualizar el perfil en la sesión de Auth para que los cambios se reflejen al salir
+      if (newPhotoUrl !== currentUser.photoURL) {
+        await updateProfile(currentUser, { photoURL: newPhotoUrl });
+      }
 
       if (newPassword) {
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
