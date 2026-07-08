@@ -47,6 +47,11 @@ function Dashboard() {
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
 
+  const cleanFileName = (name) => {
+    if (!name) return '';
+    return name.replace(/^[0-9]+_[a-zA-Z0-9]+_/, '');
+  };
+
   const fetchHistory = useCallback(async () => {
     if (!currentUser) return;
     try {
@@ -834,8 +839,8 @@ function Dashboard() {
               <div className="p-6 flex-1 flex flex-col">
                 <div className="mb-5">
                   <p className="text-[12px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider mb-1">{t('dashboard.filename')}</p>
-                  <h3 className="text-[#0F172A] dark:text-white text-[16px] font-bold truncate" title={item.nombreImagen}>
-                    {item.nombreImagen}
+                  <h3 className="text-[#0F172A] dark:text-white text-[16px] font-bold truncate" title={cleanFileName(item.nombreImagen)}>
+                    {cleanFileName(item.nombreImagen)}
                   </h3>
                 </div>
 
