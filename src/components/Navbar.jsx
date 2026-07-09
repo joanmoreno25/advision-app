@@ -3,27 +3,32 @@ import { Link } from 'react-router-dom';
 import logo from '../assets/logo.svg';
 
 const Navbar = () => {
+  const navLinks = [
+    { name: 'Funcionalidades', href: '#funcionalidades' },
+    { name: 'Seguridad', href: '#seguridad' },
+    { name: 'Tecnologías', href: '#tecnologias' }
+  ];
+
   return (
-    <nav className="w-full h-[92px] bg-[#0F172A] flex items-center justify-between px-[5%] lg:px-[8%] border-b border-white/5 sticky top-0 z-50">
+    <nav className="w-full h-[92px] bg-transparent flex items-center justify-between px-[5%] lg:px-[8%]">
       
-      {/* IZQUIERDA: Logo y Nombre */}
-      <div className="flex items-center gap-4">
-        {/* ESPACIO PARA TU LOGO */}
-        <img src={logo} alt="AdVision Logo" className="w-10 h-10" />
-        <span className="text-white text-[24px] font-bold tracking-tight">
+      {/* IZQUIERDA: Logo y Nombre con enlace al inicio */}
+      <a href="#inicio" className="flex items-center gap-4 cursor-pointer hover:opacity-90 transition-opacity">
+        <img src={logo} alt="AdVision Logo" className="w-10 h-10 drop-shadow-md" />
+        <span className="text-white text-[26px] font-bold tracking-tight drop-shadow-md">
           AdVision
         </span>
-      </div>
+      </a>
 
-      {/* CENTRO: Menú de Navegación */}
-      <div className="hidden lg:flex items-center gap-[40px]">
-        {['Funcionalidades', 'Seguridad', 'Tecnologías'].map((item) => (
+      {/* CENTRO: Menú de Navegación funcional (Aumentado tamaño a 18px y añadida sombra) */}
+      <div className="hidden lg:flex items-center gap-[180px]">
+        {navLinks.map((item) => (
           <a 
-            key={item} 
-            href={`#${item.toLowerCase()}`} 
-            className="text-white text-[16px] font-medium opacity-80 hover:opacity-100 transition-opacity"
+            key={item.name} 
+            href={item.href} 
+            className="text-white text-[22px] font-semibold drop-shadow-md opacity-80 hover:opacity-100 hover:-translate-y-0.5 transition-all"
           >
-            {item}
+            {item.name}
           </a>
         ))}
       </div>
@@ -32,13 +37,13 @@ const Navbar = () => {
       <div className="flex items-center gap-[16px]">
         <Link 
           to="/login" 
-          className="bg-white text-[#0F172A] text-[16px] font-bold px-[32px] py-[12px] rounded-[8px] hover:bg-gray-200 transition-colors"
+          className="bg-white text-[#0F172A] text-[16px] font-bold px-[32px] py-[12px] rounded-[8px] hover:bg-gray-200 transition-colors shadow-sm"
         >
           Iniciar Sesión
         </Link>
         <Link 
           to="/register" 
-          className="bg-[#2563EB] text-white text-[16px] font-bold px-[32px] py-[12px] rounded-[8px] flex items-center gap-2 hover:bg-blue-700 transition-colors"
+          className="bg-[#2563EB] text-white text-[16px] font-bold px-[32px] py-[12px] rounded-[8px] flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-md"
         >
           Empezar Gratis
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

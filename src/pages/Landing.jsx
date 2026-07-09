@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import Navbar from '../components/Navbar';
 import heroMockup from '../assets/hero-mockup.png'; 
 import feature1Mockup from '../assets/feature1-mockup.png';
@@ -9,12 +10,35 @@ import securityMockup from '../assets/security-mockup.png';
 import logo from '../assets/logo.svg';
 
 const Landing = () => {
+  const [scrolled, setScrolled] = useState(false);
+
+  // Detectar el scroll para cambiar el estilo de la barra superior
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#0F172A] font-sans overflow-x-hidden flex flex-col">
-      <Navbar />
+    <div className="min-h-screen bg-[#0F172A] font-sans overflow-x-hidden flex flex-col relative">
+      
+      <Helmet>
+        <title>AdVision | Gestión Inteligente de Archivos Publicitarios</title>
+        <meta name="description" content="Optimiza el flujo de trabajo de tu agencia con IA. Clasifica imágenes, detecta objetos y digitaliza textos automáticamente." />
+        <style>{`
+          html { scroll-behavior: smooth; }
+        `}</style>
+      </Helmet>
+
+      {/* --- Envoltorio Fijo y Dinámico para el Navbar (Efecto Cristal) --- */}
+      <div className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-[#0F172A]/90 backdrop-blur-md shadow-lg py-2 border-b border-white/10' : 'bg-transparent py-4'}`}>
+        <Navbar />
+      </div>
 
       {/* --- HERO SECTION --- */}
-      <main className="flex-1 w-full px-[8%] xl:px-[12%] 2xl:px-[16%] pt-[40px] lg:pt-[80px] pb-[40px] flex flex-col lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
+      <main id="inicio" className="flex-1 w-full px-[8%] xl:px-[12%] 2xl:px-[16%] pt-[140px] lg:pt-[180px] pb-[40px] flex flex-col lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
         
         {/* IZQUIERDA: Textos y Botones */}
         <div className="flex-1 w-full z-10 flex flex-col items-center lg:items-start text-center lg:text-left">
@@ -24,14 +48,14 @@ const Landing = () => {
             Archivos <span className="bg-gradient-to-r from-[#3B82F6] to-[#06B6D4] text-transparent bg-clip-text">Publicitarios</span>
           </h1>
           
-          <p className="text-[#94A3B8] text-[20px] lg:text-[24px] xl:text-[32px] leading-[1.6] mb-[50px] max-w-[800px]">
+          <p className="text-[#94A3B8] text-[20px] lg:text-[24px] xl:text-[30px] leading-[1.6] mb-[50px] max-w-[800px]">
             Optimiza el flujo de trabajo de tu agencia. Clasifica imágenes, detecta objetos y digitaliza textos automáticamente utilizando visión artificial y tecnología OCR avanzada.
           </p>
           
           <div className="flex w-full sm:w-auto">
             <Link 
               to="/login" 
-              className="w-full sm:w-auto bg-[#2563EB] text-white text-[20px] lg:text-[24px] font-bold px-[48px] py-[24px] rounded-[10px] hover:bg-blue-700 transition-colors text-center flex items-center justify-center gap-4"
+              className="w-full sm:w-auto bg-[#2563EB] text-white text-[20px] lg:text-[24px] font-bold px-[48px] py-[24px] rounded-[10px] hover:bg-blue-700 transition-colors text-center flex items-center justify-center gap-4 shadow-lg hover:shadow-blue-500/30"
             >
               Procesar mi primera imagen
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -43,20 +67,16 @@ const Landing = () => {
 
         {/* DERECHA: Imagen Mockup con Marco de Navegador */}
         <div className="flex-1 w-full relative z-10 flex justify-end">
-          {/* Brillo de fondo (Glow) */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[90%] bg-[#3B82F6]/20 blur-[150px] rounded-full -z-10"></div>
           
-          {/* Contenedor del Marco (Estilo Navegador) */}
           <div className="w-full max-w-[880px] xl:max-w-[1050px] bg-[#1E293B] border border-[#334155] rounded-xl p-2 shadow-2xl drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] origin-right">
             
-            {/* Barra superior con puntos de control */}
             <div className="flex gap-2 pb-3 px-2 pt-1 border-b border-[#334155] mb-2">
-              <div className="w-3 h-3 rounded-full bg-[#EF4444]"></div> {/* Rojo */}
-              <div className="w-3 h-3 rounded-full bg-[#F59E0B]"></div> {/* Amarillo */}
-              <div className="w-3 h-3 rounded-full bg-[#10B981]"></div> {/* Verde */}
+              <div className="w-3 h-3 rounded-full bg-[#EF4444]"></div>
+              <div className="w-3 h-3 rounded-full bg-[#F59E0B]"></div>
+              <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
             </div>
 
-            {/* Imagen Mockup real */}
             <img 
               src={heroMockup} 
               alt="AdVision Dashboard Demo" 
@@ -65,8 +85,9 @@ const Landing = () => {
           </div>
         </div>
       </main>
+
       {/* --- FEATURES SECTION --- */}
-      <section className="w-full bg-white px-[8%] xl:px-[12%] 2xl:px-[16%] py-[80px] lg:py-[120px] flex flex-col gap-[100px] lg:gap-[160px]">
+      <section id="funcionalidades" className="w-full bg-white px-[8%] xl:px-[12%] 2xl:px-[16%] py-[80px] lg:py-[120px] flex flex-col gap-[100px] lg:gap-[160px]">
         
         {/* BLOQUE 1: Texto izquierda, Imagen derecha */}
         <div className="flex flex-col lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
@@ -76,7 +97,6 @@ const Landing = () => {
               <h2 className="text-[#0F172A] text-[46px] sm:text-[54px] lg:text-[64px] xl:text-[70px] font-extrabold leading-[1.1] tracking-tight relative z-10">
                 Extracción de Texto <br className="hidden xl:block" /> Inmediata
               </h2>
-              {/* Elemento Subrayado arreglado */}
               <img 
                 src={underlineDecor} 
                 alt="" 
@@ -88,12 +108,12 @@ const Landing = () => {
               Olvídate de transcribir copys a mano. Nuestro motor basado en visión artificial detecta y digitaliza con precisión milimétrica cualquier texto presente en tus anuncios, banners o documentos escaneados.
             </p>
             <div className="flex w-full sm:w-auto">
-              <Link 
-                to="/#" 
-                className="w-full sm:w-auto bg-[#2563EB] text-white text-[18px] lg:text-[22px] font-bold px-[40px] py-[20px] rounded-[10px] hover:bg-blue-700 transition-colors text-center"
+              <a 
+                href="#etiquetado" 
+                className="w-full sm:w-auto bg-[#2563EB] text-white text-[18px] lg:text-[22px] font-bold px-[40px] py-[20px] rounded-[10px] hover:bg-blue-700 transition-colors text-center shadow-md"
               >
                 Ver cómo funciona
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -115,7 +135,7 @@ const Landing = () => {
         </div>
 
         {/* BLOQUE 2: Imagen izquierda, Texto derecha */}
-        <div className="flex flex-col-reverse lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
+        <div id="etiquetado" className="flex flex-col-reverse lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px] pt-10">
           
           <div className="flex-1 w-full relative">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#3B82F6]/10 blur-[120px] rounded-full -z-10"></div>
@@ -138,7 +158,6 @@ const Landing = () => {
               <h2 className="text-[#0F172A] text-[46px] sm:text-[54px] lg:text-[64px] xl:text-[70px] font-extrabold leading-[1.1] tracking-tight relative z-10">
                 Etiquetado <br className="hidden xl:block" /> Inteligente
               </h2>
-              {/* Elemento Subrayado arreglado */}
               <img 
                 src={underlineDecor} 
                 alt="" 
@@ -150,12 +169,12 @@ const Landing = () => {
               Clasificamos automáticamente tus imágenes publicitarias. Nuestro algoritmo analiza el contexto y etiqueta desde marcas y logos hasta objetos, personas y escenarios. Encuentra exactamente lo que buscas sin esfuerzo.
             </p>
             <div className="flex w-full sm:w-auto">
-              <Link 
-                to="/#" 
-                className="w-full sm:w-auto bg-[#2563EB] text-white text-[18px] lg:text-[22px] font-bold px-[40px] py-[20px] rounded-[10px] hover:bg-blue-700 transition-colors text-center"
+              <a 
+                href="#seguridad" 
+                className="w-full sm:w-auto bg-[#2563EB] text-white text-[18px] lg:text-[22px] font-bold px-[40px] py-[20px] rounded-[10px] hover:bg-blue-700 transition-colors text-center shadow-md"
               >
                 Explorar la tecnología
-              </Link>
+              </a>
             </div>
           </div>
           
@@ -164,16 +183,14 @@ const Landing = () => {
       </section>
 
       {/* --- CTA ACCESS SECTION (Full Width & Dark) --- */}
-      <section className="w-full bg-[#0F172A] px-[8%] xl:px-[12%] 2xl:px-[16%] py-[100px] lg:py-[160px] overflow-hidden flex flex-col items-center text-center">
+      <section id="tecnologias" className="w-full bg-[#0F172A] px-[8%] xl:px-[12%] 2xl:px-[16%] py-[100px] lg:py-[160px] overflow-hidden flex flex-col items-center text-center">
         
-        {/* Contenido de Texto Directamente sobre el fondo oscuro */}
         <div className="relative z-10 max-w-[900px] flex flex-col items-center">
           
           <div className="relative flex flex-col items-center mb-[32px]">
             <h2 className="text-white text-[40px] sm:text-[48px] lg:text-[60px] xl:text-[72px] font-extrabold leading-[1.1] tracking-tight relative z-10 text-center">
               Accede desde cualquier lugar
             </h2>
-            {/* Contenedor absoluto que asegura un centrado perfecto con Flexbox */}
             <div className="absolute -bottom-4 w-full flex justify-center z-0 pointer-events-none">
               <img 
                 src={underlineDecor} 
@@ -187,7 +204,6 @@ const Landing = () => {
             Una plataforma en la nube rápida y accesible desde cualquier navegador. Únete y optimiza el flujo de trabajo de tu investigación hoy mismo.
           </p>
 
-          {/* Botón Principal Unique */}
           <div className="flex w-full sm:w-auto relative z-10">
             <Link 
               to="/register" 
@@ -202,8 +218,9 @@ const Landing = () => {
         </div>
 
       </section>
+
       {/* --- SECURITY SECTION --- */}
-      <section className="w-full bg-white px-[8%] xl:px-[12%] 2xl:px-[16%] py-[80px] lg:py-[120px] flex flex-col lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
+      <section id="seguridad" className="w-full bg-white px-[8%] xl:px-[12%] 2xl:px-[16%] py-[80px] lg:py-[120px] flex flex-col lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
         
         {/* IZQUIERDA: Texto y Botón */}
         <div className="flex-1 w-full flex flex-col items-center lg:items-start text-center lg:text-left">
@@ -211,7 +228,6 @@ const Landing = () => {
             <h2 className="text-[#0F172A] text-[46px] sm:text-[54px] lg:text-[64px] xl:text-[70px] font-extrabold leading-[1.1] tracking-tight relative z-10">
               Seguridad y <br className="hidden xl:block" /> Privacidad
             </h2>
-            {/* Elemento Subrayado */}
             <img 
               src={underlineDecor} 
               alt="" 
@@ -223,17 +239,16 @@ const Landing = () => {
             Tus imágenes son el activo más valioso. Utilizamos infraestructura en la nube de alta seguridad para garantizar que tus imágenes y metadatos estén protegidos y accesibles únicamente para ti.
           </p>
           
-          {/* Botón Azul Eléctrico (Consistencia) */}
           <div className="flex w-full sm:w-auto">
-            <Link 
-              to="/#" 
+            <a 
+              href="#cta" 
               className="w-full sm:w-auto bg-[#2563EB] text-white text-[18px] lg:text-[22px] font-bold px-[40px] py-[20px] rounded-[10px] hover:bg-blue-700 transition-colors text-center flex items-center justify-center gap-3 shadow-md"
             >
               Saber más
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -256,8 +271,9 @@ const Landing = () => {
         </div>
 
       </section>
-        {/* --- FINAL CTA SECTION --- */}
-      <section className="w-full bg-[#0F172A] px-[8%] xl:px-[12%] 2xl:px-[16%] py-[80px] lg:py-[120px] flex flex-col items-center justify-center text-center">
+
+      {/* --- FINAL CTA SECTION --- */}
+      <section id="cta" className="w-full bg-[#0F172A] px-[8%] xl:px-[12%] 2xl:px-[16%] py-[80px] lg:py-[120px] flex flex-col items-center justify-center text-center">
         
         <h2 className="text-white text-[42px] sm:text-[50px] lg:text-[60px] xl:text-[70px] font-extrabold leading-[1.1] tracking-tight mb-[24px]">
           Empieza a catalogar <br className="hidden lg:block" /> hoy mismo
@@ -270,7 +286,7 @@ const Landing = () => {
         <div className="flex w-full sm:w-auto justify-center">
           <Link 
             to="/register" 
-            className="w-full sm:w-auto bg-[#2563EB] text-white text-[18px] lg:text-[22px] font-bold px-[40px] py-[20px] rounded-[10px] hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 shadow-md"
+            className="w-full sm:w-auto bg-[#2563EB] text-white text-[18px] lg:text-[22px] font-bold px-[40px] py-[20px] rounded-[10px] hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 shadow-md hover:shadow-blue-500/30"
           >
             Crear cuenta gratis
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -280,13 +296,11 @@ const Landing = () => {
         </div>
 
       </section>
+
       {/* --- FOOTER --- */}
       <footer className="w-full bg-[#0F172A] border-t border-slate-800/50 px-[8%] xl:px-[12%] 2xl:px-[16%] pt-[60px] pb-[30px] flex flex-col gap-[40px]">
         
-        {/* Parte Superior */}
         <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-between gap-8">
-          
-          {/* Info Izquierda */}
           <div className="flex flex-col items-center lg:items-start max-w-[450px]">
             <div className="flex items-center gap-3 mb-4">
               <img 
@@ -300,10 +314,8 @@ const Landing = () => {
               Sistema inteligente de catalogación publicitaria desarrollado como Trabajo de Fin de Grado.
             </p>
           </div>
-
         </div>
 
-        {/* Parte Inferior: Separador y Copyright */}
         <div className="w-full border-t border-slate-800/60 pt-[24px] flex justify-center">
           <p className="text-[#64748B] text-[16px] text-center font-medium">
             ©2026 Joan Moreno Martin
