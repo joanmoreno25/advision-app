@@ -5,6 +5,7 @@ import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from '../firebase-config';
 import { useAuth } from '../context/AuthContext';
 import { BUCKET_NAME } from '../aws-config';
+import { Helmet } from 'react-helmet-async';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer 
 } from 'recharts';
@@ -150,7 +151,7 @@ const Compare = () => {
               />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center print:hidden">
                 <button onClick={() => setActiveModal(setActive)} className="text-white font-bold bg-[#3B82F6] hover:bg-blue-600 px-6 py-2 rounded-full shadow-lg transition-colors">
-                  {t('change_image', 'Cambiar Imagen')}
+                  {t('dashboard.change_image', 'Cambiar Imagen')}
                 </button>
               </div>
             </div>
@@ -161,7 +162,7 @@ const Compare = () => {
                  <p className="text-xs text-gray-400 font-semibold">{new Date(image.fechaCreacion?.toDate()).toLocaleDateString()}</p>
                </div>
                <div className="text-right">
-                 <p className="text-[10px] uppercase font-bold text-gray-400">Confianza Media</p>
+                 <p className="text-[10px] uppercase font-bold text-gray-400">{t('dashboard.avg_confidence', 'Confianza Media')}</p>
                  <p className="text-[#3B82F6] font-extrabold text-lg leading-none print-exact-color" style={{ color: '#3B82F6', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>{getAvgConfidence(image.etiquetas)}%</p>
                </div>
             </div>
@@ -173,7 +174,7 @@ const Compare = () => {
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             </div>
             <p className={`text-base font-semibold ${setActive === 'A' ? 'text-blue-600' : 'text-purple-600'}`}>
-              {t(`select_image_${setActive.toLowerCase()}`, `Haz clic para seleccionar la Imagen ${setActive}`)}
+              {t(`dashboard.select_image_${setActive.toLowerCase()}`, `Haz clic para seleccionar la Imagen ${setActive}`)}
             </p>
           </div>
         )}
@@ -183,6 +184,11 @@ const Compare = () => {
 
   return (
     <>
+      <Helmet>
+        <title>{t('dashboard.compare_title', 'Comparación A/B')} | AdVision</title>
+        <meta name="description" content={t('dashboard.compare_desc', 'Compara variantes de anuncios y analiza métricas de IA.')} />
+      </Helmet>
+
       <style>{`
         @media print {
           @page { margin: 0; size: auto; }
@@ -207,7 +213,7 @@ const Compare = () => {
               {t('dashboard.back_to_dashboard', 'Volver al Dashboard')}
             </button>
             <h1 className="text-white text-[24px] font-bold tracking-tight absolute left-1/2 transform -translate-x-1/2 w-full text-center pointer-events-none">
-              {t('compare_title', 'Panel de Comparación A/B')}
+              {t('dashboard.compare_title', 'Panel de Comparación A/B')}
             </h1>
             <div className="w-[100px]"></div> 
           </div>
@@ -227,8 +233,8 @@ const Compare = () => {
           </div>
           {imageA && imageB && (
             <div className="mt-6 pt-5 border-t border-gray-100 flex gap-10 text-sm">
-              <p><span className="font-bold text-[#3B82F6] uppercase tracking-wider mr-2">Variante A:</span> <span className="font-semibold text-gray-600">{imageA.nombreImagen}</span></p>
-              <p><span className="font-bold text-[#8B5CF6] uppercase tracking-wider mr-2">Variante B:</span> <span className="font-semibold text-gray-600">{imageB.nombreImagen}</span></p>
+              <p><span className="font-bold text-[#3B82F6] uppercase tracking-wider mr-2">{t('dashboard.image_a', 'Variante A')}:</span> <span className="font-semibold text-gray-600">{imageA.nombreImagen}</span></p>
+              <p><span className="font-bold text-[#8B5CF6] uppercase tracking-wider mr-2">{t('dashboard.image_b', 'Variante B')}:</span> <span className="font-semibold text-gray-600">{imageB.nombreImagen}</span></p>
             </div>
           )}
         </div>
@@ -236,13 +242,13 @@ const Compare = () => {
         <div className="max-w-[1400px] mx-auto px-6 mt-10 flex flex-col gap-10 print:mt-0 print:px-0">
           
           <div className="flex flex-col lg:flex-row gap-8 items-stretch print:flex-row print:gap-6">
-            {renderImagePanel(imageA, t('image_a', 'Variante A'), 'A')}
+            {renderImagePanel(imageA, t('dashboard.image_a', 'Variante A'), 'A')}
             
             <div className="hidden lg:flex flex-col items-center justify-center pt-10 print:hidden">
                <div className="bg-white p-3 rounded-full shadow-md border border-gray-100 z-10 text-gray-400 font-black text-xl italic">VS</div>
             </div>
 
-            {renderImagePanel(imageB, t('image_b', 'Variante B'), 'B')}
+            {renderImagePanel(imageB, t('dashboard.image_b', 'Variante B'), 'B')}
           </div>
 
           <div className={`bg-white rounded-[16px] shadow-sm p-8 border border-gray-100 transition-all duration-500 print:shadow-none print:border-none print:p-0 print:mt-6 ${(!imageA || !imageB) ? 'opacity-50 grayscale print:hidden' : ''}`}>
@@ -251,21 +257,21 @@ const Compare = () => {
                 <div className="bg-gray-100 p-4 rounded-full mb-4">
                   <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002-2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-500">{t('compare_pending', 'Análisis Gráfico Bloqueado')}</h3>
-                <p className="text-gray-400 mt-2">{t('compare_pending_desc', 'Selecciona ambas variantes para generar la comparativa de datos de mercado.')}</p>
+                <h3 className="text-xl font-bold text-gray-500">{t('dashboard.compare_pending', 'Análisis Gráfico Bloqueado')}</h3>
+                <p className="text-gray-400 mt-2">{t('dashboard.compare_pending_desc', 'Selecciona ambas variantes para generar la comparativa de datos de mercado.')}</p>
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div className="text-center mb-10 print:mb-6">
-                   <h3 className="text-2xl font-extrabold text-[#0F172A]">{t('comparative_results', 'Resultados del Análisis Comparativo')}</h3>
-                   <p className="text-gray-500 font-medium mt-1">Comparativa de confianza algorítmica y métricas de mercado</p>
+                   <h3 className="text-2xl font-extrabold text-[#0F172A]">{t('dashboard.comparative_results', 'Resultados del Análisis Comparativo')}</h3>
+                   <p className="text-gray-500 font-medium mt-1">{t('dashboard.comparative_subtitle', 'Comparativa de confianza algorítmica y métricas de mercado')}</p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:grid-cols-1 print:gap-8">
                   
                   {/* Gráfico 1: Barras */}
                   <div className="lg:col-span-2 h-[400px] w-full border border-gray-100 rounded-xl p-4 bg-gray-50 print:bg-white print:border-gray-200">
-                    <h4 className="text-center font-bold text-[#0F172A] mb-4 text-xs uppercase tracking-wider">Top Etiquetas vs Confianza</h4>
+                    <h4 className="text-center font-bold text-[#0F172A] mb-4 text-xs uppercase tracking-wider">{t('dashboard.top_tags_vs_confidence', 'Top Etiquetas vs Confianza')}</h4>
                     <ResponsiveContainer width="100%" height="90%">
                       <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -273,8 +279,8 @@ const Compare = () => {
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} domain={[0, 100]} />
                         <RechartsTooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                         <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
-                        <Bar dataKey="A" name="Variante A" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="B" name="Variante B" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="A" name={t('dashboard.image_a', 'Variante A')} fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="B" name={t('dashboard.image_b', 'Variante B')} fill="#8B5CF6" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -282,20 +288,20 @@ const Compare = () => {
                   {/* Tabla de Resumen en Columnas (Diseño Estricto) */}
                   <div className="lg:col-span-1 flex flex-col justify-between">
                      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm print:shadow-none print:border-gray-300">
-                        <h4 className="font-extrabold text-[#0F172A] mb-6 border-b pb-3 uppercase text-sm tracking-wider">Métricas Globales</h4>
+                        <h4 className="font-extrabold text-[#0F172A] mb-6 border-b pb-3 uppercase text-sm tracking-wider">{t('dashboard.global_metrics', 'Métricas Globales')}</h4>
                         
                         <div className="w-full flex flex-col">
                           
                           {/* Cabeceras de columna */}
                           <div className="grid grid-cols-4 gap-3 mb-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider items-end">
-                            <div className="col-span-2">Métrica</div>
-                            <div className="text-center text-[#3B82F6]">Var. A</div>
-                            <div className="text-center text-[#8B5CF6]">Var. B</div>
+                            <div className="col-span-2">{t('dashboard.metric', 'Métrica')}</div>
+                            <div className="text-center text-[#3B82F6]">{t('dashboard.var_a', 'Var. A')}</div>
+                            <div className="text-center text-[#8B5CF6]">{t('dashboard.var_b', 'Var. B')}</div>
                           </div>
 
                           {/* Fila 1 */}
                           <div className="grid grid-cols-4 gap-3 items-center py-3 border-t border-gray-50">
-                             <div className="col-span-2 text-xs font-semibold text-gray-600">Confianza Global</div>
+                             <div className="col-span-2 text-xs font-semibold text-gray-600">{t('dashboard.global_confidence', 'Confianza Global')}</div>
                              <div className="text-center">
                                 <span className="inline-block w-full bg-blue-50 text-blue-700 border border-blue-100 px-1 py-1.5 rounded-lg text-xs font-bold print-exact-color" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', borderColor: '#dbeafe', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                   {getAvgConfidence(imageA.etiquetas)}%
@@ -310,7 +316,7 @@ const Compare = () => {
 
                           {/* Fila 2 */}
                           <div className="grid grid-cols-4 gap-3 items-center py-3 border-t border-gray-50">
-                             <div className="col-span-2 text-xs font-semibold text-gray-600">Etiquetas Extraídas</div>
+                             <div className="col-span-2 text-xs font-semibold text-gray-600">{t('dashboard.extracted_tags', 'Etiquetas Extraídas')}</div>
                              <div className="text-center">
                                 <span className="inline-block w-full bg-blue-50 text-blue-700 border border-blue-100 px-1 py-1.5 rounded-lg text-xs font-bold print-exact-color" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', borderColor: '#dbeafe', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                   {imageA.etiquetas?.length || 0}
@@ -325,7 +331,7 @@ const Compare = () => {
 
                           {/* Fila 3 */}
                           <div className="grid grid-cols-4 gap-3 items-center py-3 border-t border-gray-50">
-                             <div className="col-span-2 text-xs font-semibold text-gray-600">Líneas de Texto</div>
+                             <div className="col-span-2 text-xs font-semibold text-gray-600">{t('dashboard.text_lines', 'Líneas de Texto')}</div>
                              <div className="text-center">
                                 <span className="inline-block w-full bg-blue-50 text-blue-700 border border-blue-100 px-1 py-1.5 rounded-lg text-xs font-bold print-exact-color" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', borderColor: '#dbeafe', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                   {imageA.textoDetectado?.length || 0}
@@ -340,15 +346,15 @@ const Compare = () => {
 
                           {/* Fila 4 */}
                           <div className="grid grid-cols-4 gap-3 items-center py-3 border-t border-gray-50">
-                             <div className="col-span-2 text-xs font-semibold text-gray-600">Moderación</div>
+                             <div className="col-span-2 text-xs font-semibold text-gray-600">{t('dashboard.moderation', 'Moderación')}</div>
                              <div className="text-center">
                                 <span className={`inline-block w-full border px-1 py-1.5 rounded-lg text-[11px] font-bold print-exact-color ${imageA.moderacion?.length > 0 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`} style={imageA.moderacion?.length > 0 ? {backgroundColor: '#fef2f2', color: '#b91c1c', borderColor: '#fee2e2', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact'} : {backgroundColor: '#ecfdf5', color: '#047857', borderColor: '#d1fae5', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact'}}>
-                                  {imageA.moderacion?.length > 0 ? 'Alertas' : 'Limpio'}
+                                  {imageA.moderacion?.length > 0 ? t('dashboard.alerts', 'Alertas') : t('dashboard.clean', 'Limpio')}
                                 </span>
                              </div>
                              <div className="text-center">
                                 <span className={`inline-block w-full border px-1 py-1.5 rounded-lg text-[11px] font-bold print-exact-color ${imageB.moderacion?.length > 0 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`} style={imageB.moderacion?.length > 0 ? {backgroundColor: '#fef2f2', color: '#b91c1c', borderColor: '#fee2e2', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact'} : {backgroundColor: '#ecfdf5', color: '#047857', borderColor: '#d1fae5', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact'}}>
-                                  {imageB.moderacion?.length > 0 ? 'Alertas' : 'Limpio'}
+                                  {imageB.moderacion?.length > 0 ? t('dashboard.alerts', 'Alertas') : t('dashboard.clean', 'Limpio')}
                                 </span>
                              </div>
                           </div>
@@ -357,7 +363,7 @@ const Compare = () => {
                      
                      <button onClick={() => window.print()} className="mt-6 w-full bg-[#0F172A] hover:bg-gray-800 text-white font-bold py-4 rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 print:hidden">
                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                       Exportar Reporte PDF
+                       {t('dashboard.export_pdf_report', 'Exportar Reporte PDF')}
                      </button>
                   </div>
                 </div>
@@ -371,7 +377,7 @@ const Compare = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/80 backdrop-blur-sm p-4 print:hidden">
             <div className="bg-white rounded-[20px] w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
               <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 className="text-xl font-bold text-[#0F172A]">Seleccionar del Catálogo - Variante {activeModal}</h3>
+                <h3 className="text-xl font-bold text-[#0F172A]">{t('dashboard.select_catalog_variant', 'Seleccionar del Catálogo - Variante')} {activeModal}</h3>
                 <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-red-500 transition-colors">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
