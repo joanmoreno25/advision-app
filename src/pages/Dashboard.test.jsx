@@ -6,6 +6,11 @@ import { useAuth } from '../context/AuthContext';
 import { getDocs, deleteDoc, getCountFromServer } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 
+/**
+ * @fileoverview Test suite for the Dashboard component.
+ * Validates history fetching, search filtering, document deletion, and data export functionalities.
+ */
+
 // 1. MOCK EXTERNAL DEPENDENCIES
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -171,7 +176,7 @@ describe('Dashboard Component', () => {
     renderDashboard();
     await screen.findByText('campaña-verano.jpg');
 
-    // Aquí está la corrección: Búsqueda exacta
+    // Correction: Exact match search
     const exportMenuButton = screen.getByText('dashboard.export');
     fireEvent.click(exportMenuButton);
 

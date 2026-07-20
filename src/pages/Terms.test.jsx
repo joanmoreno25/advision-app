@@ -3,6 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Terms from './Terms';
 
+/**
+ * @fileoverview Test suite for the Terms component.
+ * Validates the rendering of static legal content and verifies the back navigation logic.
+ */
+
 // 1. MOCK EXTERNAL DEPENDENCIES
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -31,26 +36,26 @@ describe('Terms Component', () => {
     );
   };
 
-  // TEST 1: Renderizado del texto legal
+  // TEST 1: Rendering of legal text
   it('should render the terms and conditions text', () => {
     renderTerms();
     
-    // Comprobamos que los títulos y fechas importantes están presentes
+    // Verify that important titles and dates are present
     expect(screen.getByText('Términos y Condiciones Generales de Uso')).toBeInTheDocument();
     expect(screen.getByText(/Última actualización: 13 de Junio de 2026/i)).toBeInTheDocument();
     expect(screen.getByText('1. Objeto y Ámbito de Aplicación')).toBeInTheDocument();
     expect(screen.getByText('11. Legislación Aplicable y Jurisdicción')).toBeInTheDocument();
   });
 
-  // TEST 2: Lógica de navegación "Volver Atrás"
+  // TEST 2: "Go Back" navigation logic
   it('should navigate back (-1) in history when back button is clicked', () => {
     renderTerms();
     
-    // Hay dos botones de "Volver atrás" (uno arriba y otro abajo). Hacemos clic en el primero.
+    // There are two "Go Back" buttons (top and bottom). We click the first one.
     const backButtons = screen.getAllByText('Volver atrás');
     fireEvent.click(backButtons[0]);
 
-    // Comprobamos que el router recibió la orden "-1" (Ir a la página anterior en el historial)
+    // Verify that the router received the "-1" command (Go to the previous page in history)
     expect(mockNavigate).toHaveBeenCalledWith(-1);
   });
 

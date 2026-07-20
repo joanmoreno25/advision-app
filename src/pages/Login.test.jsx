@@ -4,6 +4,12 @@ import { BrowserRouter } from 'react-router-dom';
 import Login from './Login';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 
+/**
+ * @fileoverview Test suite for the Login component.
+ * Validates form rendering, input validation, and Firebase authentication integration 
+ * (both email/password and OAuth popups), ensuring correct routing on success and error handling.
+ */
+
 // 1. MOCK EXTERNAL DEPENDENCIES
 
 // Mock navigation but keep other router functions (like <Link>) working
@@ -42,7 +48,6 @@ describe('Login Component', () => {
   });
 
   // Helper function to render component with Router (needed for <Link> tags)
-  // Helper function to render component with Router
   const renderLogin = () => {
     return render(
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

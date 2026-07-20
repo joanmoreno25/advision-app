@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import logo from '../assets/logo-v2.png'; 
 
+/**
+ * Terms component.
+ * Displays the static legal Terms and Conditions required for platform compliance.
+ * Includes navigational actions to return to the previous page.
+ *
+ * @returns {JSX.Element} The rendered Terms and Conditions view.
+ */
 const Terms = () => {
   const navigate = useNavigate();
 

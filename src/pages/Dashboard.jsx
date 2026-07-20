@@ -20,6 +20,13 @@ import { Helmet } from 'react-helmet-async';
 
 import logo from '../assets/logo.svg';
 
+/**
+ * Dashboard component.
+ * Main hub for the application, handling file uploads, AWS AI integrations (Rekognition, Comprehend),
+ * displaying the history of analyzed images, and providing export functionalities (PDF, CSV, JSON, Excel).
+ *
+ * @returns {JSX.Element} The rendered Dashboard component.
+ */
 function Dashboard() {
   const { t, i18n } = useTranslation();
   const [files, setFiles] = useState([]);
@@ -48,11 +55,21 @@ function Dashboard() {
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
 
+  /**
+   * Removes timestamp and UUID prefixes from the filename for cleaner display.
+   * 
+   * @param {string} name - The original raw filename.
+   * @returns {string} The cleaned filename.
+   */
   const cleanFileName = (name) => {
     if (!name) return '';
     return name.replace(/^[0-9]+_[a-zA-Z0-9]+_/, '');
   };
 
+  /**
+   * Fetches the initial batch of user analysis history from Firestore.
+   * Also retrieves the total record count for the active user.
+   */
   const fetchHistory = useCallback(async () => {
     if (!currentUser) return;
     try {
@@ -79,6 +96,9 @@ function Dashboard() {
     }
   }, [currentUser]);
 
+  /**
+   * Handles infinite scrolling by fetching the next batch of history records from Firestore.
+   */
   const fetchMoreHistory = useCallback(async () => {
     if (!currentUser || !lastVisible || !hasMore) return;
     setLoadingMore(true);
@@ -111,6 +131,9 @@ function Dashboard() {
     }
   }, [currentUser, lastVisible, hasMore]);
 
+  /**
+   * Intersection observer callback to trigger pagination when the last item is visible.
+   */
   const lastImageElementRef = useCallback(node => {
     if (loadingMore) return;
     if (observer.current) observer.current.disconnect();
@@ -126,6 +149,9 @@ function Dashboard() {
     fetchHistory();
   }, [fetchHistory]);
 
+  /**
+   * Handles user logout via Firebase Auth.
+   */
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -159,6 +185,13 @@ function Dashboard() {
     }
   };
 
+  /**
+   * Translates AI-generated labels into the user's selected language using the MyMemory API.
+   * 
+   * @param {string} text - The source text in English.
+   * @param {string} targetLang - The target language code.
+   * @returns {Promise<string>} The translated string.
+   */
   const translateLabel = async (text, targetLang) => {
     if (targetLang === 'en') return text; 
     try {
@@ -171,6 +204,16 @@ function Dashboard() {
     }
   };
 
+  /**
+   * Persists the comprehensive analysis results to Firestore.
+   * 
+   * @param {string} imageName - The unique storage filename.
+   * @param {Array} translatedLabels - Array of label objects with translated names and confidence scores.
+   * @param {Array} detectedText - Array of detected text objects.
+   * @param {Array} dominantColors - Array of hex color codes.
+   * @param {Array} moderationLabels - Array of moderation alerts.
+   * @param {string|null} sentiment - The detected sentiment string (e.g., POSITIVE, NEGATIVE).
+   */
   const saveToFirestore = async (imageName, translatedLabels, detectedText, dominantColors, moderationLabels, sentiment) => {
     try {
       const analysisData = {
@@ -180,7 +223,7 @@ function Dashboard() {
         textoDetectado: detectedText.map(t => t.DetectedText),
         coloresDominantes: dominantColors || [],
         moderacion: moderationLabels || [],
-        sentimiento: sentiment || null, // Nuevo campo
+        sentimiento: sentiment || null,
         fechaCreacion: serverTimestamp()
       };
       await addDoc(collection(db, "analisis"), analysisData);
@@ -190,6 +233,12 @@ function Dashboard() {
     }
   };
 
+  /**
+   * Orchestrates the core AWS AI operations (Rekognition and Comprehend) for a single image.
+   * 
+   * @param {string} imageName - The unique storage filename.
+   * @param {Uint8Array} fileData - The raw image binary data.
+   */
   const analyzeImage = async (imageName, fileData) => {
     try {
       const imageParams = { Image: { Bytes: fileData } };
@@ -250,7 +299,7 @@ function Dashboard() {
         })
       );
 
-      // --- ANÁLISIS DE SENTIMIENTO (NLP) ---
+      // --- SENTIMENT ANALYSIS (NLP) ---
       const detectedString = textLines.map(t => t.DetectedText).join(" ");
       let sentimentResult = null;
       
@@ -267,11 +316,18 @@ function Dashboard() {
         }
       }
 
-    await saveToFirestore(imageName, multilangLabels, textLines, dominantColors, multilangModeration, sentimentResult);    } catch (error) {
+      await saveToFirestore(imageName, multilangLabels, textLines, dominantColors, multilangModeration, sentimentResult);    
+    } catch (error) {
       console.error("ERROR DETALLADO AWS:", error);
     }
   };
 
+  /**
+   * Generates a resized image blob for optimized frontend rendering.
+   * 
+   * @param {File} file - The original image file.
+   * @returns {Promise<Blob>} The generated thumbnail blob.
+   */
   const createThumbnail = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -279,7 +335,7 @@ function Dashboard() {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 400; // Ancho optimizado para la galería
+          const MAX_WIDTH = 400; // Optimized width for gallery views
           let width = img.width;
           let height = img.height;
 
@@ -303,26 +359,29 @@ function Dashboard() {
     });
   };
 
+  /**
+   * Manages the upload pipeline: validation, S3 storage (original & thumbnail), and AI invocation.
+   */
   const uploadToS3 = async () => {
     if (files.length === 0) return alert(t('dashboard.alert_select_file'));
     setUploading(true);
     try {
       const uploadPromises = files.map(async (file) => {
-        // 1. Validación estricta de MIME Type
+        // 1. Strict MIME Type Validation
         const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
         if (!validTypes.includes(file.type)) {
           alert(`Archivo bloqueado: ${file.name} no es un formato seguro.`);
           return; 
         }
 
-        // 2. Prevención de colisiones con UUID
+        // 2. Collision Prevention via UUID
         const uniqueId = crypto.randomUUID().split('-')[0];
         const safeFileName = `${Date.now()}_${uniqueId}_${file.name.replace(/\s+/g, '_')}`;
         
         const arrayBuffer = await file.arrayBuffer();
         const fileData = new Uint8Array(arrayBuffer);
        
-        // Subida segura con credenciales temporales
+        // Secure upload with short-lived credentials
         await s3Client.send(new PutObjectCommand({
           Bucket: BUCKET_NAME,
           Key: `originals/${safeFileName}`,
@@ -330,7 +389,7 @@ function Dashboard() {
           ContentType: file.type
         }));
        
-        // Generación y subida de miniatura
+        // Thumbnail generation and upload
         try {
           const thumbnailBlob = await createThumbnail(file);
           const thumbArrayBuffer = await thumbnailBlob.arrayBuffer();
@@ -346,7 +405,7 @@ function Dashboard() {
           console.error("Error al procesar miniatura:", thumbError);
         }
 
-        // Análisis en AWS Rekognition
+        // AWS Rekognition processing initialization
         await analyzeImage(safeFileName, fileData);
       });
       
@@ -359,6 +418,12 @@ function Dashboard() {
     }
   };
 
+  /**
+   * Generates a downloadable PDF report for a specific image analysis using html2canvas and jsPDF.
+   * 
+   * @param {Object} item - The analysis data object.
+   * @param {string} elementId - The DOM element ID of the target report card.
+   */
   const exportToPDF = async (item, elementId) => {
     const originalElement = document.getElementById(elementId);
     if (!originalElement) return;
@@ -444,6 +509,9 @@ function Dashboard() {
     history.flatMap(item => item.etiquetas?.map(e => e.nombres ? e.nombres[i18n.language || 'es'] : e.nombre) || [])
   )).filter(Boolean);
 
+  /**
+   * Applies local filtering based on search terms, confidence thresholds, and date ranges.
+   */
   const filteredHistory = history.filter(item => {
     const term = searchTerm.toLowerCase();
     const currentLang = i18n.language || 'es';
@@ -477,6 +545,9 @@ function Dashboard() {
     return passesSearch && passesConfidence && passesDate;
   });
 
+  /**
+   * Exports current filtered dataset to a CSV file.
+   */
   const exportToCSV = () => {
     const currentLang = i18n.language || 'es';
     const headers = ["Archivo", "Etiquetas", "Texto Detectado"];
@@ -497,6 +568,9 @@ function Dashboard() {
     link.click();
   };
 
+  /**
+   * Exports current filtered dataset to a JSON file.
+   */
   const exportToJSON = () => {
     const currentLang = i18n.language || 'es';
     const cleanData = filteredHistory.map(item => ({
@@ -516,6 +590,9 @@ function Dashboard() {
     link.click();
   };
 
+  /**
+   * Exports current filtered dataset to an Excel (.xlsx) file utilizing the SheetJS library.
+   */
   const exportToExcel = () => {
     const currentLang = i18n.language || 'es';
     const exportData = filteredHistory.map(item => ({
@@ -566,7 +643,7 @@ function Dashboard() {
                     {t('dashboard.go_to_analytics')}
                   </button>
 
-                  {/* Nuevo acceso a la Comparación A/B */}
+                  {/* New access to A/B Comparison */}
                   <button 
                     onClick={() => { setDropdownOpen(false); navigate('/compare'); }} 
                     className="w-full text-left px-4 py-2 text-sm text-[#3B82F6] hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors font-bold"
@@ -850,7 +927,7 @@ function Dashboard() {
                     </h3>
                   </div>
 
-                  {/* --- BLOQUE DE MODERACIÓN ACTUALIZADO CON TRADUCCIÓN --- */}
+                  {/* --- UPDATED MODERATION BLOCK WITH TRANSLATION --- */}
                   {item.moderacion?.length > 0 && revealedReasons[item.id] && (
                     <div className="mb-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 rounded-lg animate-in fade-in slide-in-from-top-2">
                       <div className="flex items-center gap-2 mb-2">
@@ -905,7 +982,7 @@ function Dashboard() {
                       <div className="flex justify-between items-center mb-2">
                         <p className="text-[12px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider">{t('dashboard.detected_text')}</p>
                         
-                        {/* Badge de Sentimiento */}
+                        {/* Sentiment Badge */}
                         {item.sentimiento && (
                           <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold shadow-sm ${
                             item.sentimiento === 'POSITIVE' ? 'bg-green-100 text-green-700 border border-green-200' :
@@ -926,7 +1003,7 @@ function Dashboard() {
                     </div>
                   )}
 
-                  {/* --- NUEVO BLOQUE: PALETA DE COLORES DOMINANTES --- */}
+                  {/* --- NEW BLOCK: DOMINANT COLOR PALETTE --- */}
                   {item.coloresDominantes && item.coloresDominantes.length > 0 && (
                     <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-700 flex justify-between items-center">
                       <p className="text-[12px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider">{t('dashboard.dominant_colors')}</p>

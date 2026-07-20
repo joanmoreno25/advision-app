@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 import { HelmetProvider } from 'react-helmet-async';
 
-// Importaciones Dinámicas (Lazy Loading)
+// Lazy Loading
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -12,9 +12,8 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Analytics = lazy(() => import('./pages/Analytics'));
-const Compare = lazy(() => import('./pages/Compare')); // Nueva importación
+const Compare = lazy(() => import('./pages/Compare'));
 
-// Spinner de carga mientras se descarga el componente
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-[#EEF2F6] dark:bg-[#0B1120] transition-colors duration-300">
     <svg className="animate-spin h-10 w-10 text-[#3B82F6]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -30,7 +29,6 @@ function App() {
       <Router>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            {/* Ruta pública principal conectada a Landing */}
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -46,9 +44,7 @@ function App() {
                   <Dashboard />
                 </PrivateRoute>
               } 
-            />
-            
-            {/* Nueva ruta protegida para la comparación A/B */}
+            />           
             <Route 
               path="/compare" 
               element={

@@ -2,20 +2,29 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import App from './App';
 
-// MOCK GLOBAL DE FIREBASE PARA LA APP PRINCIPAL
+/**
+ * @fileoverview Main integration test suite for the App component.
+ * Validates that the entire application renders without crashing, mocking critical dependencies
+ * such as Firebase Authentication and internationalization (i18next) to ensure isolated test execution.
+ */
+
+// GLOBAL FIREBASE MOCK FOR THE MAIN APP
 jest.mock('./firebase-config', () => ({
   auth: {
-    // Simulamos la verificación de sesión en tiempo real de Firebase
+    /**
+     * Simulates Firebase real-time session verification.
+     * Starts as a guest (no session).
+     */
     onAuthStateChanged: jest.fn((callback) => {
-      callback(null); // Simulamos que inicia como invitado (sin sesión)
-      return jest.fn(); // Función de limpieza
+      callback(null); 
+      return jest.fn(); // Cleanup function
     }) 
   },
   db: {}
 }));
 
-// MOCK GLOBAL DE TRADUCCIONES (Soluciona el error de "Suspended resource")
-// Previene que la app intente descargar archivos JSON de idiomas de internet
+// GLOBAL TRANSLATION MOCK
+// Prevents the app from attempting to download language JSON files from the internet during tests.
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key) => key,
@@ -27,15 +36,18 @@ jest.mock('react-i18next', () => ({
 }));
 
 describe('Main App Component', () => {
+  /**
+   * Integration test: Verifies that the app boots successfully.
+   */
   it('should render the entire application without crashing', async () => {
     
-    // Al usar 'await act', el test pausará su ejecución y esperará a que 
-    // todas las Promesas, Suspenses y useEffects iniciales de App.jsx terminen.
+    // Using 'await act', the test pauses execution and waits for 
+    // all initial Promises, Suspenses, and useEffects in App.jsx to resolve.
     await act(async () => {
       render(<App />);
     });
     
-    // Si la aplicación se dibuja sin explotar la consola, este test pasará.
+    // If the application renders without throwing console errors, the test passes.
     expect(true).toBe(true);
   });
 });
