@@ -6,12 +6,24 @@ import { Helmet } from 'react-helmet-async';
 
 import logo from '../assets/logo-v2.png';
 
+/**
+ * ForgotPassword component.
+ * Provides a user interface for requesting a password reset link via Firebase Authentication.
+ * Handles validation, loading states, and success/error feedback.
+ * 
+ * @returns {JSX.Element} The rendered Forgot Password view.
+ */
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Processes the password reset request using the provided email address.
+   * 
+   * @param {React.FormEvent<HTMLFormElement>} e - The form submission event.
+   */
   const handlePasswordReset = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -47,7 +59,7 @@ const ForgotPassword = () => {
 
       <div className="min-h-screen flex w-full items-center justify-center bg-[#2563EB] relative p-4 sm:p-8 overflow-hidden font-sans">
         
-        {/* Patrón de puntos blancos de fondo */}
+        {/* White dot background pattern */}
         <div 
           className="absolute inset-0 z-0 opacity-20" 
           style={{ 
@@ -56,25 +68,25 @@ const ForgotPassword = () => {
           }}
         ></div>
 
-        {/* Degradado radial para dar profundidad */}
+        {/* Radial gradient for depth */}
         <div className="absolute inset-0 opacity-80 bg-[radial-gradient(circle_at_center,_transparent_0%,_#1E40AF_100%)] z-0"></div>
         
-        {/* Tarjeta Central Blanca (Aumentada a max-w-[600px] y mayor padding) */}
+        {/* Main White Card (Increased to max-w-[600px] with larger padding) */}
         <div className="relative z-10 w-full max-w-[600px] bg-white rounded-[24px] shadow-2xl p-10 sm:p-14 flex flex-col">
           
-          {/* Cabecera con Logo */}
+          {/* Header with Logo */}
           <div className="flex flex-col items-center mb-10">
             <img src={logo} alt="AdVision Logo" className="w-22 h-22 object-contain mb-4" />
             <h1 className="text-[#0F172A] text-[42px] font-extrabold mb-3 text-center leading-[1.1]">
               Recuperar contraseña
             </h1>
-            {/* Texto de descripción aumentado a text-[19px] y max-w ampliado */}
+            {/* Description text increased to text-[19px] and expanded max-w */}
             <p className="text-[#64748B] text-[19px] text-center max-w-[450px] leading-[1.5]">
               Introduce tu correo electrónico para recibir un enlace de restauración
             </p>
           </div>
 
-          {/* Mensajes de Estado */}
+          {/* Status Messages */}
           {errorMsg && (
             <div className="mb-6 p-3 bg-red-100 text-red-600 border border-red-200 rounded-[8px] text-[15px] text-center font-medium">
               {errorMsg}
@@ -87,7 +99,7 @@ const ForgotPassword = () => {
             </div>
           )}
 
-          {/* Formulario */}
+          {/* Form */}
           <form onSubmit={handlePasswordReset} className="flex flex-col gap-6">
             <div>
               <label className="block text-[#0F172A] text-[17px] font-semibold mb-2">Correo electrónico</label>
@@ -109,7 +121,7 @@ const ForgotPassword = () => {
             </button>
           </form>
 
-          {/* Vínculo de Retorno */}
+          {/* Return Link */}
           <p className="text-center text-[#64748B] text-[17px] mt-8">
             Volver al <Link to="/login" className="text-[#2563EB] font-semibold hover:underline">Iniciar sesión</Link>
           </p>

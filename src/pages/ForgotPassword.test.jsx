@@ -4,6 +4,12 @@ import { BrowserRouter } from 'react-router-dom';
 import ForgotPassword from './ForgotPassword';
 import { sendPasswordResetEmail } from 'firebase/auth';
 
+/**
+ * @fileoverview Test suite for the ForgotPassword component.
+ * Validates UI rendering, input handling, and Firebase authentication interactions
+ * (success states, user-not-found errors, and generic network errors).
+ */
+
 // 1. MOCK EXTERNAL DEPENDENCIES
 
 // Mock Firebase Auth
@@ -39,7 +45,7 @@ describe('ForgotPassword Component', () => {
     );
   };
 
-  // TEST 1: Renderizado inicial (Smoke Test)
+  // TEST 1: Initial Render (Smoke Test)
   it('should render the form and elements correctly', () => {
     renderComponent();
     
@@ -48,46 +54,46 @@ describe('ForgotPassword Component', () => {
     expect(screen.getByText('Iniciar sesión')).toBeInTheDocument();
   });
 
-  // TEST 2: Validación de campo vacío
+  // TEST 2: Empty Field Validation
   it('should show a validation error if email is empty', async () => {
     renderComponent();
     
     fireEvent.click(screen.getByText('Enviar enlace'));
     
-    // Verificamos el mensaje de error y que Firebase no se haya llamado
+    // Verify the error message and ensure Firebase was not called
     expect(await screen.findByText('Por favor, introduce tu correo electrónico.')).toBeInTheDocument();
     expect(sendPasswordResetEmail).not.toHaveBeenCalled();
   });
 
-  // TEST 3: Camino Feliz (Éxito al enviar el correo)
+  // TEST 3: Happy Path (Successful email dispatch)
   it('should handle successful password reset request', async () => {
     renderComponent();
     
-    // Falsificamos una respuesta exitosa de Firebase
+    // Mock a successful Firebase response
     sendPasswordResetEmail.mockResolvedValueOnce();
 
     const emailInput = screen.getByPlaceholderText('tu-correo@ejemplo.com');
     fireEvent.change(emailInput, { target: { value: 'test@ejemplo.com' } });
     fireEvent.click(screen.getByText('Enviar enlace'));
 
-    // Verificamos que el botón cambia a estado de carga
+    // Verify that the button changes to the loading state
     expect(screen.getByText('Enviando...')).toBeInTheDocument();
 
     await waitFor(() => {
-      // Verificamos que se envía el correo exacto a Firebase
+      // Verify that the exact email is sent to Firebase
       expect(sendPasswordResetEmail).toHaveBeenCalledWith(expect.anything(), 'test@ejemplo.com');
     });
 
-    // Verificamos mensaje de éxito y que el input se vacía
+    // Verify success message and input clearance
     expect(await screen.findByText('Enlace de recuperación enviado. Revisa tu bandeja de entrada.')).toBeInTheDocument();
     expect(emailInput.value).toBe('');
   });
 
-  // TEST 4: Error - Usuario no encontrado
+  // TEST 4: Error - User Not Found
   it('should handle user-not-found error from Firebase', async () => {
     renderComponent();
     
-    // Falsificamos un error específico de Firebase
+    // Mock a specific Firebase error
     sendPasswordResetEmail.mockRejectedValueOnce({ code: 'auth/user-not-found' });
 
     fireEvent.change(screen.getByPlaceholderText('tu-correo@ejemplo.com'), { target: { value: 'fantasma@ejemplo.com' } });
@@ -96,11 +102,11 @@ describe('ForgotPassword Component', () => {
     expect(await screen.findByText('No existe ninguna cuenta con este correo electrónico.')).toBeInTheDocument();
   });
 
-  // TEST 5: Error - Fallo genérico
+  // TEST 5: Error - Generic Failure
   it('should handle generic errors from Firebase', async () => {
     renderComponent();
     
-    // Falsificamos un error genérico (ej. sin internet)
+    // Mock a generic error (e.g., network failure)
     sendPasswordResetEmail.mockRejectedValueOnce(new Error('Network error'));
 
     fireEvent.change(screen.getByPlaceholderText('tu-correo@ejemplo.com'), { target: { value: 'error@ejemplo.com' } });

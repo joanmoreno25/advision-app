@@ -11,6 +11,13 @@ import { Helmet } from 'react-helmet-async';
 import { s3Client, BUCKET_NAME } from '../aws-config';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 
+/**
+ * Profile component.
+ * Allows the user to view and edit personal information, upload an avatar (saved to AWS S3),
+ * change application preferences (language, theme), change their password, and delete their account.
+ *
+ * @returns {JSX.Element} The rendered Profile dashboard.
+ */
 const Profile = () => {
   const { t, i18n } = useTranslation();
   const { currentUser } = useAuth();
@@ -50,6 +57,9 @@ const Profile = () => {
   });
 
   useEffect(() => {
+    /**
+     * Fetches user profile data from Firestore upon component mount.
+     */
     const loadUserData = async () => {
       if (currentUser) {
         const docRef = doc(db, "usuarios", currentUser.uid);
@@ -68,6 +78,11 @@ const Profile = () => {
     loadUserData();
   }, [currentUser]);
 
+  /**
+   * Handles the selection of a new avatar image and generates a local preview.
+   *
+   * @param {React.ChangeEvent<HTMLInputElement>} e - The file input change event.
+   */
   const handlePhotoChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedPhoto(e.target.files[0]);
@@ -75,6 +90,12 @@ const Profile = () => {
     }
   };
 
+  /**
+   * Persists all profile modifications to Firestore and updates authentication records.
+   * Handles avatar uploads to S3, locale changes, and optional password updates requiring reauthentication.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} e - The form submission event.
+   */
   const handleUpdate = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -95,7 +116,7 @@ const Profile = () => {
           return; 
         }
 
-        // CORRECCIÓN 1: Fallback para evitar el bloqueo del script en localhost sin https
+        // FIX 1: Fallback to prevent script blocking on localhost without HTTPS
         const uniqueId = typeof crypto.randomUUID === 'function' 
           ? crypto.randomUUID().split('-')[0] 
           : Math.random().toString(36).substring(2, 8);
@@ -125,7 +146,7 @@ const Profile = () => {
         photoURL: newPhotoUrl
       }, { merge: true });
 
-      // CORRECCIÓN 2: Actualizar el perfil en la sesión de Auth para que los cambios se reflejen al salir
+      // FIX 2: Update the profile in the Auth session so changes are reflected upon exit
       if (newPhotoUrl !== currentUser.photoURL) {
         await updateProfile(currentUser, { photoURL: newPhotoUrl });
       }
@@ -167,6 +188,9 @@ const Profile = () => {
     }
   };
 
+  /**
+   * Disconnects the user session and navigates to the login view.
+   */
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -176,6 +200,9 @@ const Profile = () => {
     }
   };
 
+  /**
+   * Permanently deletes the user's authentication account from Firebase.
+   */
   const handleDeleteAccount = async () => {
     try {
       await deleteUser(currentUser);

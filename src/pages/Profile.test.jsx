@@ -7,6 +7,12 @@ import { useTheme } from '../context/ThemeContext';
 import { getDoc, setDoc } from 'firebase/firestore';
 import { updatePassword, updateProfile, reauthenticateWithCredential, deleteUser, signOut } from 'firebase/auth';
 
+/**
+ * @fileoverview Test suite for the Profile component.
+ * Validates data fetching from Firestore, form interactions, password change validations,
+ * modal interactions (account deletion), and theme toggling.
+ */
+
 // 1. MOCK EXTERNAL DEPENDENCIES
 
 // Mock React Router
@@ -69,7 +75,7 @@ jest.mock('react-helmet-async', () => ({
   Helmet: ({ children }) => <div data-testid="helmet">{children}</div>
 }));
 
-// Mock global URL.createObjectURL para que no falle al simular subida de imágenes
+// Mock global URL.createObjectURL to prevent failures when simulating image uploads
 window.URL.createObjectURL = jest.fn();
 
 // 2. TEST SUITE
@@ -94,16 +100,16 @@ describe('Profile Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Configuramos el usuario logueado
+    // Set up the logged-in user
     useAuth.mockReturnValue({ currentUser: mockUser });
     
-    // Falsificamos la respuesta de la base de datos (Firestore)
+    // Mock the database (Firestore) response
     getDoc.mockResolvedValue({
       exists: () => true,
       data: () => mockFirestoreData
     });
 
-    // Limpiamos el localStorage
+    // Clear localStorage
     localStorage.clear();
   });
 
@@ -115,15 +121,15 @@ describe('Profile Component', () => {
     );
   };
 
-  // TEST 1: Carga inicial de datos (Smoke Test)
+  // TEST 1: Initial data load (Smoke Test)
   it('should load and display user data from Firestore on mount', async () => {
     renderProfile();
 
-    // Verificamos que el nombre y el correo estáticos aparecen
+    // Verify that the static name and email appear
     expect(screen.getByDisplayValue('Joan Moreno')).toBeInTheDocument();
     expect(screen.getByDisplayValue('joan@test.com')).toBeInTheDocument();
 
-    // Esperamos a que la petición asíncrona a Firebase se resuelva y rellene los campos
+    // Wait for the asynchronous Firebase request to resolve and fill the fields
     await waitFor(() => {
       expect(screen.getByDisplayValue('600123456')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Calle Falsa 123')).toBeInTheDocument();
@@ -131,7 +137,7 @@ describe('Profile Component', () => {
     });
   });
 
-  // TEST 2: Validación de contraseñas (Las contraseñas no coinciden)
+  // TEST 2: Password validation (Passwords do not match)
   it('should show an error if new password and confirm password do not match', async () => {
     renderProfile();
     
@@ -150,56 +156,56 @@ describe('Profile Component', () => {
 
     expect(await screen.findByText('profile.error_passwords_not_match')).toBeInTheDocument();
     
-    // Verificamos que NO se llamó a updatePassword (la contraseña no se cambió)
-    // Nota: setDoc SÍ se ejecutó porque el componente guarda los datos generales antes de la validación de contraseña.
+    // Verify that updatePassword was NOT called (password was not changed)
+    // Note: setDoc WAS executed because the component saves general data before password validation.
     expect(updatePassword).not.toHaveBeenCalled();
   });
 
-  // TEST 3: Interacción con el Modal de Eliminar Cuenta
+  // TEST 3: Interaction with the Delete Account Modal
   it('should open delete modal and call deleteUser when confirmed', async () => {
     renderProfile();
     await waitFor(() => expect(screen.getByDisplayValue('España')).toBeInTheDocument());
 
-    // Clic en "Eliminar cuenta" (Abre el modal)
+    // Click on "Delete account" (Opens the modal)
     fireEvent.click(screen.getByText('profile.delete_account'));
 
-    // Comprobamos que el título del modal aparece
+    // Check that the modal title appears
     expect(await screen.findByText('profile.modal_delete_title')).toBeInTheDocument();
 
-    // Clic en Confirmar (Botón rojo dentro del modal)
+    // Click on Confirm (Red button inside the modal)
     fireEvent.click(screen.getByText('profile.confirm_delete'));
 
-    // Verificamos que la función de borrado de Firebase se ejecuta
+    // Verify that the Firebase delete function is executed
     await waitFor(() => {
       expect(deleteUser).toHaveBeenCalledWith(mockUser);
     });
     
-    // Verificamos redirección a la página de registro
+    // Verify redirection to the registration page
     expect(mockNavigate).toHaveBeenCalledWith('/register');
   });
 
-  // TEST 4: Cerrar sesión
+  // TEST 4: Logout
   it('should call signOut and navigate to login when logout is clicked', async () => {
     renderProfile();
     await waitFor(() => expect(screen.getByDisplayValue('España')).toBeInTheDocument());
 
-    // Clic en "Cerrar sesión"
+    // Click on "Logout"
     fireEvent.click(screen.getByText('profile.logout'));
 
-    // Verificamos las llamadas
+    // Verify the calls
     await waitFor(() => {
       expect(signOut).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith('/login');
     });
   });
 
-  // TEST 5: Cambiar el tema oscuro
+  // TEST 5: Toggle dark theme
   it('should call toggleDarkMode when the theme toggle button is clicked', async () => {
     renderProfile();
     await waitFor(() => expect(screen.getByDisplayValue('España')).toBeInTheDocument());
 
-    // El botón del tema no tiene texto, así que lo buscamos por su clase o estructura.
-    // Al ser un botón sin aria-label explícito, usamos querySelector sobre el contenedor o simplemente disparamos el botón correcto
+    // The theme button has no text, so we find it by its class or structure.
+    // Since it's a button without an explicit aria-label, we use querySelector on the container or simply trigger the correct button.
     const themeButton = screen.getAllByRole('button').find(btn => btn.className.includes('rounded-full transition-colors'));
     
     if (themeButton) {

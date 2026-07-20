@@ -9,10 +9,18 @@ import underlineDecor from '../assets/underline.png';
 import securityMockup from '../assets/security-mockup.png';
 import logo from '../assets/logo.svg';
 
+/**
+ * Landing page component.
+ * Serves as the public-facing homepage of the AdVision application.
+ * Features responsive sections highlighting product capabilities, dynamic navbar styling on scroll,
+ * and clear calls to action (CTAs) for user registration and login.
+ *
+ * @returns {JSX.Element} The rendered Landing page component.
+ */
 const Landing = () => {
   const [scrolled, setScrolled] = useState(false);
 
-  // Detectar el scroll para cambiar el estilo de la barra superior
+  // Detect scroll position to dynamically toggle the top bar styling
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -32,7 +40,7 @@ const Landing = () => {
         `}</style>
       </Helmet>
 
-      {/* --- Envoltorio Fijo y Dinámico para el Navbar (Efecto Cristal) --- */}
+      {/* --- Fixed and Dynamic Navbar Wrapper (Glassmorphism Effect) --- */}
       <div className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-[#0F172A]/90 backdrop-blur-md shadow-lg py-2 border-b border-white/10' : 'bg-transparent py-4'}`}>
         <Navbar />
       </div>
@@ -40,7 +48,7 @@ const Landing = () => {
       {/* --- HERO SECTION --- */}
       <main id="inicio" className="flex-1 w-full px-[8%] xl:px-[12%] 2xl:px-[16%] pt-[140px] lg:pt-[180px] pb-[40px] flex flex-col lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
         
-        {/* IZQUIERDA: Textos y Botones */}
+        {/* LEFT: Text and Buttons */}
         <div className="flex-1 w-full z-10 flex flex-col items-center lg:items-start text-center lg:text-left">
           
           <h1 className="text-white text-[48px] sm:text-[64px] lg:text-[80px] xl:text-[110px] font-extrabold leading-[1.1] tracking-tight mb-[30px]">
@@ -65,7 +73,7 @@ const Landing = () => {
           </div>
         </div>
 
-        {/* DERECHA: Imagen Mockup con Marco de Navegador */}
+        {/* RIGHT: Mockup Image with Browser Frame */}
         <div className="flex-1 w-full relative z-10 flex justify-end">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[90%] bg-[#3B82F6]/20 blur-[150px] rounded-full -z-10"></div>
           
@@ -89,7 +97,7 @@ const Landing = () => {
       {/* --- FEATURES SECTION --- */}
       <section id="funcionalidades" className="w-full bg-white px-[8%] xl:px-[12%] 2xl:px-[16%] py-[80px] lg:py-[120px] flex flex-col gap-[100px] lg:gap-[160px]">
         
-        {/* BLOQUE 1: Texto izquierda, Imagen derecha */}
+        {/* BLOCK 1: Text Left, Image Right */}
         <div className="flex flex-col lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
           
           <div className="flex-1 w-full flex flex-col items-center lg:items-start text-center lg:text-left">
@@ -134,7 +142,7 @@ const Landing = () => {
           </div>
         </div>
 
-        {/* BLOQUE 2: Imagen izquierda, Texto derecha */}
+        {/* BLOCK 2: Image Left, Text Right */}
         <div id="etiquetado" className="flex flex-col-reverse lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px] pt-10">
           
           <div className="flex-1 w-full relative">
@@ -222,7 +230,7 @@ const Landing = () => {
       {/* --- SECURITY SECTION --- */}
       <section id="seguridad" className="w-full bg-white px-[8%] xl:px-[12%] 2xl:px-[16%] py-[80px] lg:py-[120px] flex flex-col lg:flex-row items-center justify-between gap-[60px] lg:gap-[80px]">
         
-        {/* IZQUIERDA: Texto y Botón */}
+        {/* LEFT: Text and Button */}
         <div className="flex-1 w-full flex flex-col items-center lg:items-start text-center lg:text-left">
           <div className="relative inline-block mb-[24px]">
             <h2 className="text-[#0F172A] text-[46px] sm:text-[54px] lg:text-[64px] xl:text-[70px] font-extrabold leading-[1.1] tracking-tight relative z-10">
@@ -252,7 +260,7 @@ const Landing = () => {
           </div>
         </div>
 
-        {/* DERECHA: Imagen Mockup con Marco de Navegador */}
+        {/* RIGHT: Mockup Image with Browser Frame */}
         <div className="flex-1 w-full relative flex justify-end">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#3B82F6]/10 blur-[120px] rounded-full -z-10"></div>
           

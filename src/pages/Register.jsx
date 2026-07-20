@@ -7,6 +7,13 @@ import { Helmet } from 'react-helmet-async';
 import logo from '../assets/logo-v2.png';
 import registerImage from '../assets/register-image.png';
 
+/**
+ * Register component.
+ * Provides the user interface and logic for creating a new account on the AdVision platform.
+ * Handles form validation (password strength, email format, terms acceptance) and integrates with Firebase Auth.
+ *
+ * @returns {JSX.Element} The rendered Register component.
+ */
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -19,6 +26,12 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
+  /**
+   * Handles user authentication via Google OAuth popup.
+   * Redirects to the dashboard upon successful authentication.
+   *
+   * @param {React.MouseEvent<HTMLButtonElement>} e - The click event.
+   */
   const handleGoogleSignIn = async (e) => {
     e.preventDefault();
     try {
@@ -30,41 +43,47 @@ const Register = () => {
     }
   };
 
+  /**
+   * Handles the manual registration process using email and password.
+   * Validates form data, creates the user in Firebase, and updates the profile display name.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} e - The form submission event.
+   */
   const handleRegister = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
-    // Validar campos vacíos
+    // Validate empty fields
     if (!name || !email || !password || !confirmPassword) {
       return setErrorMsg("Todos los campos son obligatorios.");
     }
 
-    // Validar extensión y formato de correo
+    // Validate email format and extension
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!emailRegex.test(email)) {
       return setErrorMsg("Por favor, introduce un correo electrónico válido.");
     }
 
-    // Validar coincidencia de contraseñas
+    // Validate password match
     if (password !== confirmPassword) {
       return setErrorMsg("Las contraseñas no coinciden.");
     }
 
-    // Validar seguridad de contraseña (min 8 chars, 1 mayús, 1 minús, 1 número, 1 símbolo)
+    // Validate password security (min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 symbol)
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,}$/;
     if (!passwordRegex.test(password)) {
       return setErrorMsg("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.");
     }
 
-    // Validar términos y condiciones
+    // Validate terms and conditions acceptance
     if (!termsAccepted) {
       return setErrorMsg("Debes aceptar los Términos y Condiciones.");
     }
 
-    // Registro en Firebase
+    // Firebase Registration
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // Guardar el nombre del usuario en su perfil de Firebase
+      // Save the user's name in their Firebase profile
       await updateProfile(userCredential.user, { displayName: name });
       navigate('/dashboard');
     } catch (error) {
@@ -85,7 +104,7 @@ const Register = () => {
 
       <div className="min-h-screen flex w-full font-sans bg-white">
         
-        {/* MITAD IZQUIERDA: Formulario */}
+        {/* LEFT HALF: Form */}
         <div className="w-full lg:w-1/2 flex flex-col justify-center px-[8%] sm:px-[12%] lg:px-[15%] py-12">
           
           <div className="flex flex-col items-center mb-10 mt-4">
@@ -183,7 +202,7 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Ajuste de alineación con items-center */}
+            {/* Alignment adjustment with items-center */}
             <div className="flex items-center gap-3 mt-2">
               <input 
                 type="checkbox" 
@@ -211,11 +230,11 @@ const Register = () => {
 
         </div>
 
-        {/* MITAD DERECHA */}
+        {/* RIGHT HALF */}
         <div className="hidden lg:flex flex-col lg:w-1/2 bg-[#2563EB] relative items-center justify-center p-12 overflow-hidden">
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent z-0"></div>
           
-          {/* Efecto hover añadido aquí */}
+          {/* Hover effect added here */}
           <img 
             src={registerImage} 
             alt="Dashboard Mockup" 

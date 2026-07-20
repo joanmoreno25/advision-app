@@ -7,6 +7,13 @@ import { Helmet } from 'react-helmet-async';
 import logo from '../assets/logo-v2.png'; 
 import loginImage from '../assets/login-image.png';
 
+/**
+ * Login component.
+ * Provides the user interface and logic for authenticating users into the AdVision platform.
+ * Supports both traditional email/password authentication and Google OAuth provider.
+ *
+ * @returns {JSX.Element} The rendered Login component.
+ */
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,6 +21,12 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  /**
+   * Handles user authentication via Google OAuth popup.
+   * Redirects to the dashboard upon successful authentication.
+   *
+   * @param {React.MouseEvent<HTMLButtonElement>} e - The click event.
+   */
   const handleGoogleSignIn = async (e) => {
     e.preventDefault();
     try {
@@ -25,6 +38,12 @@ const Login = () => {
     }
   };
 
+  /**
+   * Handles user authentication using email and password.
+   * Validates inputs and redirects to the dashboard upon success.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} e - The form submission event.
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -50,7 +69,7 @@ const Login = () => {
 
       <div className="min-h-screen flex w-full font-sans bg-white">
         
-        {/* MITAD IZQUIERDA: Formulario */}
+        {/* LEFT HALF: Form */}
         <div className="w-full lg:w-1/2 flex flex-col justify-center px-[8%] sm:px-[12%] lg:px-[15%] py-12">
           
           <div className="flex flex-col items-center mb-10 mt-4">
@@ -116,7 +135,7 @@ const Login = () => {
                 </button>
               </div>
               
-              {/* Link "¿Has olvidado tu contraseña?" */}
+              {/* "Forgot your password?" Link */}
               <div className="flex justify-end mt-2">
                 <Link to="/forgot-password" className="text-[#2563EB] text-[14px] font-medium hover:underline">
                   ¿Has olvidado tu contraseña?
@@ -138,7 +157,7 @@ const Login = () => {
 
         </div>
 
-        {/* MITAD DERECHA */}
+        {/* RIGHT HALF */}
         <div className="hidden lg:flex flex-col lg:w-1/2 bg-[#2563EB] relative items-center justify-center p-12 overflow-hidden">
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent z-0"></div>
           
